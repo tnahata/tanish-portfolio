@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import About from '@/components/About';
+import Projects from '@/components/Projects';
 
 const AXES = [
   { label: 'AI Agents' },
@@ -156,6 +158,7 @@ export default function Home() {
   }, []);
 
   return (
+    <>
     <section className="relative w-full min-h-screen overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
@@ -201,5 +204,8 @@ export default function Home() {
         </div>
       </div>
     </section>
+    <About />
+    <Projects />
+    </>
   );
 }
