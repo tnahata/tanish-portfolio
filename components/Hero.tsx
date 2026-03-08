@@ -60,9 +60,9 @@ export default function Hero() {
             lineHeight: '1.8',
           }}
         >
-          I design systems that scale, build AI agents that reason deeply, and find rhythm in
-          code and music. Obsessed with optimization—both algorithmically and athletically.
-          Currently exploring the intersection of agentic workflows and emergent intelligence.
+          Engineer by discipline. Builder by obsession. I work on AI-powered systems and
+          agents that reason, adapt, and scale. Hybrid athlete. Music lover. I believe that the best products—like the
+          best sets—are engineered to make you feel something.
         </p>
 
         {/* CTAs: Centered, Consistent */}
