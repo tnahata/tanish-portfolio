@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import About from '@/components/About';
 import Projects from '@/components/Projects';
+import Footer from '@/components/Footer';
 
 const AXES = [
   { label: 'AI Agents' },
@@ -206,6 +207,7 @@ export default function Home() {
     </section>
     <About />
     <Projects />
+    <Footer />
     </>
   );
 }
