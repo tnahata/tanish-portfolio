@@ -1,7 +1,9 @@
+import Hero from '@/components/Hero';
+
 export default function Home() {
   return (
     <main>
-      <h1>Foundation ready.</h1>
+      <Hero />
     </main>
   );
 }

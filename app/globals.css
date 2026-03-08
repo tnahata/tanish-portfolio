@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
 
 :root {
   /* Colors */
@@ -20,12 +21,6 @@
   --transition-slow: 350ms ease-out;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 html {
   scroll-behavior: smooth;
 }
@@ -39,42 +34,29 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Typography */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
   font-weight: 600;
   line-height: 1.2;
 }
 
-h1 {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-}
-
-h2 {
-  font-size: clamp(2rem, 4vw, 3rem);
-}
-
-h3 {
-  font-size: clamp(1.5rem, 3vw, 2rem);
-}
+h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
+h2 { font-size: clamp(2rem, 4vw, 3rem); }
+h3 { font-size: clamp(1.5rem, 3vw, 2rem); }
 
 code, pre {
   font-family: var(--font-mono);
   font-size: 0.875rem;
 }
 
-/* Links */
 a {
   color: var(--color-accent);
   text-decoration: none;
   transition: all var(--transition-fast);
 }
 
-a:hover {
-  opacity: 0.8;
-}
+a:hover { opacity: 0.8; }
 
-/* Focus states for accessibility */
 a:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--color-accent);
@@ -82,31 +64,7 @@ button:focus-visible {
   border-radius: 2px;
 }
 
-/* Utility animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 @keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  animation: fadeIn var(--transition-base);
-}
-
-.slide-in-up {
-  animation: slideInUp var(--transition-base);
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
