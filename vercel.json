@@ -2,7 +2,7 @@
     "redirects": [
         {
             "source": "https://www.tanish-portfolio.vercel.app/(.*)",
-            "destination": "https://www.tanishnahata.com/(.*)",
+            "destination": "https://tanish-portfolio.vercel.app/(.*)",
             "permanent": true
         }
     ]
