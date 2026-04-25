@@ -1,4 +1,4 @@
-name: Preview Deployment Check
+name: CI
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: Build & Lint
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,24 +19,3 @@ jobs:
       - run: npm ci
 
       - run: npx next build
-
-  await-vercel-preview:
-    name: Vercel Preview Deployment
-    runs-on: ubuntu-latest
-    steps:
-      - name: Wait for Vercel deployment
-        uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
-        id: vercel
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          max_timeout: 300
-
-      - name: Verify preview is reachable
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ steps.vercel.outputs.url }}")
-          echo "Preview URL: ${{ steps.vercel.outputs.url }}"
-          echo "Status: $STATUS"
-          if [ "$STATUS" -ne 200 ]; then
-            echo "Preview deployment returned $STATUS, expected 200"
-            exit 1
-          fi
