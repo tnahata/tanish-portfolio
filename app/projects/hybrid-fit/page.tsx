@@ -163,7 +163,7 @@ export default function HybridFitPage() {
           <span>Back to Projects</span>
         </Link>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'rgba(0,217,255,0.4)', letterSpacing: '0.15em' }}>
-          CASE STUDY — 02
+          CASE STUDY — 03
         </span>
       </nav>
 

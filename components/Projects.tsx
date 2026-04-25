@@ -8,6 +8,22 @@ import { ArrowUpRight, ArrowRight } from 'lucide-react';
 const PROJECTS = [
   {
     index: '01',
+    title: 'Discovery Agent',
+    subtitle: 'AI-Powered Twitter Discovery & Engagement Agent',
+    description:
+      'Personal productivity agent that searches Twitter for conversations worth joining, drafts replies that match your voice, and routes everything through Slack for approval before posting. The hard parts: orchestrating a multi-stage pipeline that pauses mid-execution for human decisions, enforcing cost controls before every external call, and teaching the model to write like you without claiming expertise you don\'t have.',
+    tech: ['Python 3.12', 'LangGraph', 'Slack Bolt', 'Claude Haiku', 'PostgreSQL', 'pgvector', 'Docker'],
+    status: 'Shipping',
+    statusColor: '#6366f1',
+    href: 'mailto:tanishnahata2002@gmail.com?subject=Discovery%20Agent',
+    cta: 'Ask me about it',
+    caseStudyLabel: 'View Case Study',
+    slug: 'discovery-agent',
+    visual: 'network' as const,
+    featured: true,
+  },
+  {
+    index: '02',
     title: 'ESMON',
     subtitle: 'Indian Railway Analytics Desktop App',
     description:
@@ -23,7 +39,7 @@ const PROJECTS = [
     featured: false,
   },
   {
-    index: '02',
+    index: '03',
     title: 'HybridFit',
     subtitle: 'Full-Stack Fitness Platform for Hybrid Athletes',
     description:
@@ -37,22 +53,6 @@ const PROJECTS = [
     slug: 'hybrid-fit',
     visual: 'chart' as const,
     featured: false,
-  },
-  {
-    index: '03',
-    title: 'AI Agent Project',
-    subtitle: 'Next Build — Looking for the Right Problem',
-    description:
-      "I'm deep in the agentic AI space and actively exploring what to build next. The space is moving fast and I want to work on something with real leverage—agents that reason, take action, and compound value over time. If you're working on something in this space and want to collaborate, I'd love to talk.",
-    tech: [],
-    status: 'Coming Soon',
-    statusColor: '#6366f1',
-    href: 'mailto:tanishnahata2002@gmail.com?subject=AI%20Agent%20Collaboration',
-    cta: "Let's talk!",
-    caseStudyLabel: 'Read my thinking',
-    slug: 'ai-agent',
-    visual: 'network' as const,
-    featured: true,
   },
 ];
 
@@ -290,13 +290,13 @@ export default function Projects() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-          {regularProjects.map((project, i) => (
-            <ProjectCard key={project.title} project={project} delay={i * 120} />
-          ))}
+        <div className="mb-5">
+          <ProjectCard project={featuredProject} delay={0} />
         </div>
-        <div>
-          <ProjectCard project={featuredProject} delay={regularProjects.length * 120} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {regularProjects.map((project, i) => (
+            <ProjectCard key={project.title} project={project} delay={(i + 1) * 120} />
+          ))}
         </div>
       </div>
 
