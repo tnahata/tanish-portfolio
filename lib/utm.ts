@@ -1,4 +1,4 @@
-const BASE_URL = 'https://tanishnahata.com';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://tanishnahata.com';
 
 export function buildUTMLink(baseUrl: string, source: string, medium: string, campaign: string): string {
   const url = new URL(baseUrl);
