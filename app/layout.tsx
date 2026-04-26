@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
+import UTMTracker from '@/components/UTMTracker';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ export default function RootLayout({
       <body>
         {children}
         <Analytics />
+        <UTMTracker />
       </body>
     </html>
   );

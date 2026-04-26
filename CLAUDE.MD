@@ -1,118 +1,114 @@
-# Tanish's Personal Portfolio Website
+# Tanish's Portfolio — CLAUDE.md
 
-## Project Overview
-A personal website showcasing my work as a software engineer, including my projects (ESMON, HybridFit), technical skills, interests in AI agents and agentic workflows, running/fitness background, and interest in logic puzzles. The site should reflect who I am: thoughtful, rigorous, ambitious to become a 100x engineer in the AI era, and someone who approaches complex problems systematically.
+## What this is
 
-## Personal Brand & Design Aesthetic
-**Tone**: Bold, intentional, technical but not cold. Minimalist-but-refined rather than maximalist. Avoid generic AI aesthetics.
-**Core Values in Design**:
-- **Authenticity**: Reflect my actual personality (analytical, passionate about systems, athletic)
-- **Clarity**: Information architecture should be clean and scannable for recruiters
-- **Distinctiveness**: One unforgettable visual or interaction element that signals I think differently
-- **Performance**: Fast, responsive, accessible (a100x engineer cares about fundamentals)
+Personal portfolio for Tanish Nahata, a software engineer focused on AI agents and full-stack systems. The site is the primary landing page linked from LinkedIn, GitHub, resume, and email.
 
-**Design Direction**: 
-Think "engineer's workspace meets editorial design." Dominant dark background (near-black or deep blue), sharp accent color (I'll go with electric blue or cyan—connects to my HybridFit theme), distinctive typography pairing (modern serif display + clean sans-serif body), subtle motion and micro-interactions that feel intentional rather than gratuitous.
+## Dev setup
 
-### Visual Identity
-- **Primary Color**: `#0a0e27` (deep navy)
-- **Accent Color**: `#00d9ff` (electric cyan) — connects to projects, signals tech/AI
-- **Secondary Accent**: `#6366f1` (indigo) — for hierarchy, emphasis
-- **Background**: `#0a0e27` or `#0f1419` (near-black with slight blue tint)
-- **Text**: `#f5f5f5` (off-white, not pure white for eye comfort)
-- **Typography**:
-  - Display: **Playfair Display** or **Abril Fatface** (editorial, distinctive, conveys "designed with intention")
-  - Body: **Space Grotesk** or **JetBrains Mono** (clean, technical, readable)
-  - Code: **JetBrains Mono** (monospace, aligns with developer identity)
-
-### Motion & Interaction
-- Page load: subtle staggered reveals (h1, then sections fade in with slight delay)
-- Hover states: cyan accent underlines, smooth transitions on links/buttons
-- Scroll triggers: smooth section entrances as you scroll (use Intersection Observer or CSS scroll-triggered animations)
-- One "hero" interaction: something memorable on the home section (e.g., a subtle parallax effect, or animated project cards that reveal on scroll)
-
-## Technical Stack
-- **Framework**: Next.js (React) with TypeScript
-- **Styling**: Tailwind CSS + custom CSS for distinctive effects
-- **Deployment**: Vercel (zero-config, aligns with Next.js)
-- **Code Style**: TypeScript, modular components, performance-first
-
-### File Structure (Preferred)
-```
-tanish-portfolio/
-├── app/
-│   ├── layout.tsx (global layout, nav)
-│   ├── page.tsx (home/hero)
-│   ├── projects/
-│   │   ├── page.tsx (projects list)
-│   │   └── [slug]/page.tsx (individual project details)
-│   └── about/page.tsx (about, skills, interests)
-├── components/
-│   ├── Navigation.tsx
-│   ├── Hero.tsx
-│   ├── ProjectCard.tsx
-│   ├── SkillGroup.tsx
-│   └── Footer.tsx
-├── public/
-│   └── images/ (project screenshots, etc.)
-├── styles/
-│   └── globals.css (custom CSS, animations, theme vars)
-├── CLAUDE.md (this file)
-└── README.md
+```bash
+npm install
+npm run dev       # localhost:3000
+npm run build     # production build
+npx tsc --noEmit  # type check
 ```
 
-## Content Strategy
-**Sections to include**:
-1. **Hero**: Name, title ("Software Engineer | AI Enthusiast"), one-liner about me, CTA (e.g., "Explore my work" or "Get in touch")
-2. **About**: 2-3 paragraphs on who I am, my engineering philosophy, what I care about (systems thinking, AI agents, fitness, logic puzzles)
-3. **Projects**:
-   - **ESMON** — Analytics desktop app for Indian Railways that turns raw binary journey data into filterable reports, time-series charts, and multi-section PDF exports. The hard parts: parsing undocumented binary formats, keeping filter state consistent across tabs without coupling the controllers, and rendering charts offscreen to prevent JavaFX deadlocks during PDF generation. Stack: Java 21, JavaFX, Spring Boot, SQLite, Apache PDFBox, Maven, jpackage.
-   - **HybridFit** — Training platform for hybrid athletes who don't fit neatly into one sport. The design challenge was making a complex system—multi-plan enrollment, flexible scheduling, granular workout logging—feel simple to use daily. Performance was non-negotiable: response caching and DB projections cut query load by over 99%. AI coaching recommendations are next. Stack: Next.js, TypeScript, NextAuth, MongoDB, Zod, Vercel, Puppeteer.
-   - **Others**: Personal AI agent projects, leetcode insights, any learning projects
-4. **Skills**: Organized by category (Languages, Frameworks, Concepts, Tools)
-5. **Interests**: Running (half-marathon training), logic puzzles, AI/agentic systems, clean code
-6. **Contact/Socials**: GitHub, LinkedIn, Twitter (if applicable), email
+## Tech stack
 
-## Project Detail Pages (`/projects/[slug]`)
+- **Framework**: Next.js 14 (App Router), TypeScript
+- **Styling**: Tailwind CSS + custom CSS in `styles/globals.css`
+- **Analytics**: Vercel Analytics (`@vercel/analytics`)
+- **Deployment**: Vercel — preview on every branch push, production on `main`
 
-Each project has its own case study page, structured as an editorial deep-dive. These pages exist for readers who want to understand the engineering behind a project—primarily technical recruiters and engineers, not general audiences.
+## File structure
 
-### Page Structure
-Each page follows this section order:
-1. **Sticky nav** — Back link to `/#projects` + case study index label
-2. **Hero** — Large title, one-line subtitle, status badge, and a schematic SVG visual of the application interface (not a real screenshot)
-3. **Overview** (`01 — Overview`) — Two-column layout: sticky display heading left, 2–3 paragraphs right
-4. **The Hard Parts** (`02 — The Hard Parts`) — Three cards, each covering a distinct engineering challenge
-5. **Outcomes** (`03 — Outcomes`) — Four metric callout boxes with a big number and a label
-6. **Stack** (`04 — Stack`) — Tag cloud of technologies
-7. **CTA footer** — Primary action (GitHub link, mailto, etc.)
+```
+app/
+  layout.tsx               — root layout, mounts Analytics + UTMTracker
+  page.tsx                 — home/hero
+  projects/
+    esmon/page.tsx         — ESMON case study
+    hybrid-fit/page.tsx    — HybridFit case study
+    discovery-agent/page.tsx — Discovery Agent case study
+  api/og/route.tsx         — OG image generation
+components/
+  UTMTracker.tsx           — silent client component, persists UTM params to sessionStorage
+lib/
+  useUTMPersistence.ts     — hook: reads UTM params from URL, writes to sessionStorage
+  utm.ts                   — buildUTMLink() + UTM_LINKS constants for all sources
+docs/
+  utm-tracking.md          — UTM tracking documentation and future use cases
+styles/
+  globals.css              — custom CSS, animations, CSS variables
+public/
+  images/                  — static assets
+```
 
-### Writing Guidelines for Overview
-- Focus on **why** decisions were made, not exhaustive feature lists
-- If the application has architectural constraints (offline-only, local storage, cross-platform), explain the **reason** behind them—not just the fact
-- Do not mention specific proprietary documents, internal spec names, or client-specific implementation details
-- Avoid naming specific scraping libraries, internal API routes, or third-party tooling that isn't central to the story
-- 2–3 paragraphs: what it is → key architectural decision and why → how it ships/scales
+## Environment variables
 
-### Writing Guidelines for The Hard Parts
-Each card should describe a genuine engineering problem worth talking about. Rules:
-- **No proprietary details**: Do not name internal data format specs, client-specific file naming conventions, or confidential implementation details. Abstract to the category (e.g. "binary format" not "LTM/STM format", "the spec" not "RDSO ELRS/SPEC/0002")
-- **No code-level references**: Do not mention specific method names, API routes, or internal class names. Describe mechanisms and tradeoffs at a conceptual level
-- **Favour design and reasoning over implementation**: A card about UI design should focus on the decision-making process—especially if it was done independently without a designer or senior—not just the resulting component
-- **Choose problems with real engineering weight**: Prefer schema design, threading models, caching strategy, data modeling tradeoffs, and interface design challenges over descriptions of individual features (drag-and-drop, pagination, etc.)
-- Each card: problem title → what made it hard → how it was resolved (at a level a senior engineer would find interesting)
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_BASE_URL` | Base URL for building UTM-tagged links |
 
-### Tone for Case Study Pages
-- Confident but not boastful — let the work speak
-- First-person and direct — these are personal projects, own them
-- Honest about constraints and tradeoffs — this signals maturity
-- No filler phrases like "I leveraged", "robust solution", or "seamless experience"
+- **Production**: `https://tanishnahata.com`
+- **Preview**: `https://${VERCEL_URL}` (set in Vercel dashboard — Vercel substitutes the deployment URL)
+- **Local**: set in `.env.local` (gitignored, see `.env.example`)
 
-## Design Principles (Craft Quality)
-- **Typography is primary**: Invest in font choices and hierarchy. Use the display font sparingly for maximum impact.
-- **Color discipline**: 3-4 colors max. Let the accent color (cyan) sing through restraint.
-- **Whitespace/Negative Space**: Generous padding and margins. Don't cramp the layout.
-- **Micro-interactions**: Smooth, purposeful. Hover states, focus states (accessibility), scroll reveals—all coordinated.
-- **Responsive**: Mobile-first. The site should look intentional on every screen size.
-- **Performance**: Lazy-load images, minimize JS, optimize fonts (system fonts as fallback).
-- **Accessibility**: WCAG AA minimum. Semantic HTML, alt text, sufficient color contrast, keyboard navigation.
+## Branching and PRs
+
+- `main` is production — merges deploy automatically to Vercel
+- Feature work goes on named branches, PR to `main`
+- Branch naming: `kebab-case` describing the change (e.g. `utm-tracking`, `add-project-x`)
+
+## UTM tracking
+
+Tagged links for all sharing destinations live in `lib/utm.ts` as `UTM_LINKS`. Use these when posting the portfolio URL anywhere (LinkedIn bio, resume, GitHub profile, email signature).
+
+Vercel Analytics captures UTM params automatically from the landing page URL. `UTMTracker` additionally persists them to `sessionStorage` for future custom event attribution. See `docs/utm-tracking.md` for full details.
+
+## Design system
+
+**Colors**
+- Background: `#0a0e27` (deep navy)
+- Accent: `#00d9ff` (electric cyan)
+- Secondary accent: `#6366f1` (indigo)
+- Text: `#f5f5f5` (off-white)
+
+**Typography**
+- Display: Playfair Display (used sparingly for maximum impact)
+- Body: Space Grotesk
+- Code: JetBrains Mono
+
+**Motion**
+- Staggered page load reveals
+- Scroll-triggered section entrances
+- Smooth hover transitions on links and buttons
+
+**Principles**: generous whitespace, 3-4 color max, mobile-first, WCAG AA accessibility minimum.
+
+## Project case study pages
+
+Located at `/projects/[slug]`. Structure for every case study:
+
+1. Sticky nav — back link to `/#projects`
+2. Hero — title, subtitle, status badge, schematic SVG (not a screenshot)
+3. `01 — Overview` — two-column: sticky heading left, 2–3 paragraphs right
+4. `02 — The Hard Parts` — three engineering challenge cards
+5. `03 — Outcomes` — four metric callouts
+6. `04 — Stack` — technology tags
+7. CTA footer — primary action link
+
+**Writing rules for case studies**
+- No proprietary details: abstract to the category ("binary format", not a specific spec name)
+- No code-level references: no method names, internal class names, or API routes
+- Focus on decisions and tradeoffs, not feature lists
+- Tone: confident, first-person, direct — no filler phrases ("leveraged", "robust", "seamless")
+- No em-dashes — use periods, colons, semicolons, or parentheses instead
+
+## Projects
+
+**ESMON** — Analytics desktop app for Indian Railways. Parses raw binary journey data into filterable reports, time-series charts, and PDF exports. Stack: Java 21, JavaFX, Spring Boot, SQLite, Apache PDFBox, Maven, jpackage.
+
+**HybridFit** — Training platform for hybrid athletes. Multi-plan enrollment, flexible scheduling, granular workout logging. Response caching and DB projections cut query load by over 99%. Stack: Next.js, TypeScript, NextAuth, MongoDB, Zod, Vercel.
+
+**Discovery Agent** — AI agent project. See case study page for details.
