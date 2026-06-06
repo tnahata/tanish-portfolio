@@ -2,6 +2,51 @@
 
 import { useEffect, useRef } from 'react';
 
+const ROLES = [
+  {
+    period: 'Dec 2025 — Present',
+    title: 'Software Engineer II',
+    tech: 'Java, Spring Boot, JUnit, Jenkins, GitHub Copilot',
+    highlights: [
+      {
+        metric: '5,000+ facilities',
+        detail: 'Built and shipped core platform features for an operations management system used across North America and Europe.',
+      },
+      {
+        metric: '350+ facilities',
+        detail: 'Led European operations rollout by executing production data loads, coordinating across 3 teams to ensure zero data gaps at launch.',
+      },
+      {
+        metric: '4 major releases',
+        detail: 'Led cross-team release of major features, aligning dependencies across 3 teams to deliver on schedule with zero regressions.',
+      },
+      {
+        metric: '25+ engineers',
+        detail: 'Drove adoption of AI-assisted development (GitHub Copilot), standardizing development workflows across the team.',
+      },
+    ],
+  },
+  {
+    period: 'Jun 2024 — Dec 2025',
+    title: 'Software Engineer',
+    tech: 'Redis, Java, Spring Boot, Angular, TypeScript, Jenkins',
+    highlights: [
+      {
+        metric: '90% fewer escalations',
+        detail: 'Introduced a Redis caching layer to surface real-time UI states, eliminating data inconsistencies across operations.',
+      },
+      {
+        metric: '100+ hrs saved',
+        detail: 'Built scalable Java/Spring Boot APIs for bulk CSV ingestion, enabling operations teams across 25+ European countries to onboard facility data.',
+      },
+      {
+        metric: '500+ managers',
+        detail: 'Developed an Angular-based scheduling calendar UI used by facility managers for daily planning and operational monitoring.',
+      },
+    ],
+  },
+];
+
 export default function Experience() {
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -41,113 +86,104 @@ export default function Experience() {
           <div className="flex-1 h-px" style={{ background: 'rgba(0,217,255,0.15)' }} />
         </div>
 
-        <div
-          className="exp-reveal opacity-0 grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-10 lg:gap-16 p-8 lg:p-10"
-          style={{
-            border: '1px solid rgba(0,217,255,0.12)',
-            borderRadius: '4px',
-            backgroundColor: '#0d1230',
-          }}
-        >
-          {/* Left — company + role */}
-          <div className="flex flex-col justify-between gap-6">
-            <div>
-              <p
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.6rem',
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  color: 'var(--color-accent)',
-                  marginBottom: '0.75rem',
-                }}
-              >
-                Jun 2024 — Present
-              </p>
-              <h3
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 'clamp(1.4rem, 2.5vw, 1.9rem)',
-                  fontWeight: 700,
-                  color: 'var(--color-text)',
-                  lineHeight: 1.1,
-                  letterSpacing: '-0.02em',
-                  marginBottom: '0.4rem',
-                }}
-              >
-                FedEx Corp
-              </h3>
-              <p
-                style={{
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.14em',
-                  color: 'var(--color-secondary)',
-                  fontWeight: 500,
-                }}
-              >
-                Full Stack Engineer II
-              </p>
-            </div>
-            <span
-              className="inline-flex items-center gap-1.5 self-start"
+        <div className="flex flex-col gap-5">
+          {ROLES.map((role) => (
+            <div
+              key={role.period}
+              className="exp-reveal opacity-0 grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-10 lg:gap-16 p-8 lg:p-10"
               style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.6rem',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                color: '#22c55e',
+                border: '1px solid rgba(0,217,255,0.12)',
+                borderRadius: '4px',
+                backgroundColor: '#0d1230',
               }}
             >
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }} />
-              Promoted Dec &apos;25
-            </span>
-          </div>
-
-          {/* Right — highlights */}
-          <div className="flex flex-col justify-center gap-5">
-            {[
-              {
-                metric: '100+ hrs saved',
-                detail: 'Built production APIs in Java Spring Boot for bulk CSV ingestion, letting 25 European countries pipe data into core logistics systems without manual entry.',
-              },
-              {
-                metric: '60% latency cut',
-                detail: 'Introduced a Redis caching layer that eliminated static delays and unblocked faster frontend interactions across the network.',
-              },
-              {
-                metric: 'AI-first workflow',
-                detail: 'Currently exploring how IDE AI agents can accelerate the development lifecycle — from documentation to code quality — at enterprise scale.',
-              },
-            ].map(({ metric, detail }) => (
-              <div key={metric} className="flex gap-5 items-start">
-                <span
-                  className="shrink-0 mt-0.5"
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.65rem',
-                    fontWeight: 600,
-                    color: 'var(--color-accent)',
-                    letterSpacing: '0.04em',
-                    minWidth: '7rem',
-                  }}
-                >
-                  {metric}
-                </span>
-                <p
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: '0.85rem',
-                    lineHeight: '1.7',
-                    color: 'var(--color-text-muted)',
-                  }}
-                >
-                  {detail}
-                </p>
+              {/* Left — role info */}
+              <div className="flex flex-col gap-4">
+                <div>
+                  <p
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.6rem',
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-accent)',
+                      marginBottom: '0.75rem',
+                    }}
+                  >
+                    {role.period}
+                  </p>
+                  <h3
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 'clamp(1.4rem, 2.5vw, 1.9rem)',
+                      fontWeight: 700,
+                      color: 'var(--color-text)',
+                      lineHeight: 1.1,
+                      letterSpacing: '-0.02em',
+                      marginBottom: '0.4rem',
+                    }}
+                  >
+                    FedEx Corp
+                  </h3>
+                  <p
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: '0.75rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.14em',
+                      color: 'var(--color-secondary)',
+                      fontWeight: 500,
+                      marginBottom: '0.75rem',
+                    }}
+                  >
+                    {role.title}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.6rem',
+                      color: 'var(--color-text-muted)',
+                      letterSpacing: '0.04em',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {role.tech}
+                  </p>
+                </div>
               </div>
-            ))}
-          </div>
+
+              {/* Right — highlights */}
+              <div className="flex flex-col justify-center gap-5">
+                {role.highlights.map(({ metric, detail }) => (
+                  <div key={metric} className="flex gap-5 items-start">
+                    <span
+                      className="shrink-0 mt-0.5"
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        color: 'var(--color-accent)',
+                        letterSpacing: '0.04em',
+                        minWidth: '8rem',
+                      }}
+                    >
+                      {metric}
+                    </span>
+                    <p
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '0.85rem',
+                        lineHeight: '1.7',
+                        color: 'var(--color-text-muted)',
+                      }}
+                    >
+                      {detail}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -155,6 +191,7 @@ export default function Experience() {
         .exp-reveal { transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease; }
         .exp-reveal.exp-visible { opacity: 1 !important; transform: translateY(0); }
         .exp-reveal:nth-child(2) { transition-delay: 80ms; }
+        .exp-reveal:nth-child(3) { transition-delay: 160ms; }
       `}</style>
     </section>
   );
