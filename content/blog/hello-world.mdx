@@ -1,0 +1,33 @@
+---
+title: "Hello World"
+date: "2026-06-05"
+excerpt: "First post. A quick note on what I'll be writing about and why I started this blog."
+featured: true
+---
+
+## Why a blog
+
+I've been building software for a while now. Most of what I learn disappears into Slack threads, commit messages, and conversations that nobody can search later. This blog is where I'll write things down properly.
+
+Expect posts about:
+
+- **AI agents** and the engineering problems that come with building them
+- **System design decisions** and the tradeoffs behind them
+- **Things I got wrong** and what I learned from it
+
+## What I won't do
+
+I won't write tutorials that rehash documentation. If something is already well-explained elsewhere, I'll link to it. The posts here will focus on decisions, tradeoffs, and the parts that documentation doesn't cover.
+
+> The best writing comes from having an opinion and being willing to defend it.
+
+## The stack
+
+This blog runs on MDX files in the repo, rendered by Next.js at build time. No database, no CMS, no admin panel. Write markdown, push to git, done.
+
+```typescript
+const post = getPostBySlug('hello-world');
+// that's it. that's the whole backend.
+```
+
+More soon.
