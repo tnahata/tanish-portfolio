@@ -231,7 +231,7 @@ export default function BlogPostView({
       </nav>
 
       {/* Hero */}
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-16 pb-0">
+      <div className="max-w-[680px] mx-auto px-6 sm:px-10 pt-16 pb-0">
         <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
           <span
             style={{
