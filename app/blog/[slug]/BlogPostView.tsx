@@ -231,7 +231,7 @@ export default function BlogPostView({
       </nav>
 
       {/* Hero */}
-      <div className="max-w-[680px] mx-auto px-6 sm:px-10 pt-16 pb-0">
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-16 pb-0">
         <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
           <span
             style={{
@@ -256,8 +256,8 @@ export default function BlogPostView({
             color: 'var(--color-text)',
             lineHeight: 1.05,
             letterSpacing: '-0.03em',
-            marginBottom: '3rem',
-            maxWidth: '18ch',
+            marginBottom: '1rem',
+            maxWidth: '55ch',
           }}
         >
           {title}
@@ -266,7 +266,7 @@ export default function BlogPostView({
 
       {/* Content */}
       <div
-        className="max-w-[680px] mx-auto px-6 sm:px-10 pb-24 lg:pb-32"
+        className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-24 lg:py-32"
       >
         <div className="cs-reveal opacity-0">
           <MDXRemote source={content} components={mdxComponents} />
