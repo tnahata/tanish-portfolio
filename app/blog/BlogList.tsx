@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { BlogPost } from '@/lib/blog';
 
 type PostMeta = Omit<BlogPost, 'content'>;
@@ -123,49 +123,11 @@ export default function BlogList({ posts }: { posts: PostMeta[] }) {
   const rest = posts.filter((p) => p.slug !== featured?.slug);
 
   return (
-    <div style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh' }}>
-      {/* Nav */}
-      <nav
-        className="sticky top-0 z-50 flex items-center justify-between px-6 sm:px-10 lg:px-16 py-4"
-        style={{
-          backgroundColor: 'rgba(10,14,39,0.92)',
-          borderBottom: '1px solid rgba(0,217,255,0.12)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
-        <Link
-          href="/#projects"
-          className="flex items-center gap-2 group"
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.8rem',
-            color: 'var(--color-text-muted)',
-            letterSpacing: '0.04em',
-          }}
-        >
-          <ArrowLeft
-            size={14}
-            strokeWidth={2}
-            className="transition-transform duration-200 group-hover:-translate-x-1"
-          />
-          <span>Back to Home</span>
-        </Link>
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.65rem',
-            color: 'rgba(0,217,255,0.6)',
-            letterSpacing: '0.15em',
-          }}
-        >
-          BLOG
-        </span>
-      </nav>
-
+    <div style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh', paddingTop: '60px' }}>
       <section
         ref={sectionRef}
         style={{
-          backgroundColor: 'var(--color-primary-dark)',
+          backgroundColor: 'var(--color-primary)',
           borderTop: '1px solid rgba(0,217,255,0.08)',
         }}
         className="relative overflow-hidden"
