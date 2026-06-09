@@ -1,0 +1,60 @@
+<svg viewBox="0 0 710 390" xmlns="http://www.w3.org/2000/svg" role="img" style="">
+  <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">A code editor showing Thread.sleep(8000) with a resigned comment</title>
+  <desc style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Stylized code snippet meant to evoke the feeling of legacy code that everyone knows is wrong but nobody fixes</desc>
+  
+  <defs>
+    
+  </defs>
+
+  <!-- Editor background -->
+  <rect width="700" height="380" rx="12" fill="#1e1e2e" style="fill:rgb(30, 30, 46);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  
+  <!-- Title bar -->
+  <rect width="700" height="36" rx="12" fill="#181825" style="fill:rgb(24, 24, 37);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <rect y="12" width="700" height="24" fill="#181825" style="fill:rgb(24, 24, 37);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  
+  <!-- Window dots -->
+  <circle cx="20" cy="18" r="6" fill="#f38ba8" style="fill:rgb(243, 139, 168);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <circle cx="40" cy="18" r="6" fill="#f9e2af" style="fill:rgb(249, 226, 175);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <circle cx="60" cy="18" r="6" fill="#a6e3a1" style="fill:rgb(166, 227, 161);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  
+  <!-- Filename tab -->
+  <text x="350" y="23" font-family="'JetBrains Mono', monospace" font-size="12" fill="#6c7086" text-anchor="middle" style="fill:rgb(108, 112, 134);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:auto">EntityCreationService.java</text>
+
+  <!-- Line numbers gutter -->
+  <rect x="0" y="36" width="48" height="344" fill="#181825" opacity="0.5" style="fill:rgb(24, 24, 37);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.5;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  
+  <!-- Line numbers -->
+  <text x="32" y="90" font-family="'JetBrains Mono', monospace" font-size="13" fill="#45475a" text-anchor="end" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:end;dominant-baseline:auto">141</text>
+  <text x="32" y="118" font-family="'JetBrains Mono', monospace" font-size="13" fill="#45475a" text-anchor="end" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:end;dominant-baseline:auto">142</text>
+  <text x="32" y="146" font-family="'JetBrains Mono', monospace" font-size="13" fill="#45475a" text-anchor="end" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:end;dominant-baseline:auto">143</text>
+  <text x="32" y="174" font-family="'JetBrains Mono', monospace" font-size="13" fill="#45475a" text-anchor="end" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:end;dominant-baseline:auto">144</text>
+  <text x="32" y="202" font-family="'JetBrains Mono', monospace" font-size="13" fill="#45475a" text-anchor="end" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:end;dominant-baseline:auto">145</text>
+  <text x="32" y="230" font-family="'JetBrains Mono', monospace" font-size="13" fill="#45475a" text-anchor="end" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:end;dominant-baseline:auto">146</text>
+  <text x="32" y="258" font-family="'JetBrains Mono', monospace" font-size="13" fill="#45475a" text-anchor="end" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:end;dominant-baseline:auto">147</text>
+  <text x="32" y="286" font-family="'JetBrains Mono', monospace" font-size="13" fill="#45475a" text-anchor="end" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:end;dominant-baseline:auto">148</text>
+  <text x="32" y="314" font-family="'JetBrains Mono', monospace" font-size="13" fill="#45475a" text-anchor="end" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:end;dominant-baseline:auto">149</text>
+  <text x="32" y="342" font-family="'JetBrains Mono', monospace" font-size="13" fill="#45475a" text-anchor="end" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:end;dominant-baseline:auto">150</text>
+
+  <!-- Code context - dimmed -->
+  <text x="60" y="90" font-family="'JetBrains Mono', monospace" font-size="13" fill="#585b70" style="fill:rgb(88, 91, 112);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:start;dominant-baseline:auto">    parentEntity.persist();</text>
+  <text x="60" y="118" font-family="'JetBrains Mono', monospace" font-size="13" fill="#585b70" style="fill:rgb(88, 91, 112);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- The comment - slightly brighter -->
+  <text x="60" y="146" font-family="'JetBrains Mono', monospace" font-size="13" fill="#6c7086" font-style="italic" style="fill:rgb(108, 112, 134);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;font-style:italic;text-anchor:start;dominant-baseline:auto">    // wait for parent to persist in CORE</text>
+  <text x="60" y="174" font-family="'JetBrains Mono', monospace" font-size="13" fill="#6c7086" font-style="italic" style="fill:rgb(108, 112, 134);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;font-style:italic;text-anchor:start;dominant-baseline:auto">    // TODO: there has to be a better way</text>
+
+  <!-- Highlight bar behind the main line -->
+  <rect x="48" y="192" width="652" height="26" fill="#f38ba8" opacity="0.08" style="fill:rgb(243, 139, 168);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.08;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  
+  <!-- The star line -->
+  <text x="60" y="210" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="700" fill="#f38ba8" style="fill:rgb(243, 139, 168);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:14px;font-weight:700;text-anchor:start;dominant-baseline:auto">    Thread.sleep(8000);</text>
+
+  <!-- More context - dimmed -->
+  <text x="60" y="242" font-family="'JetBrains Mono', monospace" font-size="13" fill="#585b70" style="fill:rgb(88, 91, 112);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <text x="60" y="262" font-family="'JetBrains Mono', monospace" font-size="13" fill="#585b70" style="fill:rgb(88, 91, 112);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:13px;font-weight:400;text-anchor:start;dominant-baseline:auto">    createChildEntity(parentId);</text>
+  
+  <!-- Git blame style annotation -->
+  <text x="60" y="314" font-family="'JetBrains Mono', monospace" font-size="11" fill="#45475a" style="fill:rgb(69, 71, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:start;dominant-baseline:auto">  git blame: 3 years ago  ·  5 contributors looked at this  ·  0 changed it</text>
+
+</svg>

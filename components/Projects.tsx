@@ -274,7 +274,7 @@ export default function Projects() {
         <div className="proj-reveal opacity-0 mb-8 flex items-center gap-6">
           <span className="text-[10px] uppercase tracking-[0.35em] font-semibold"
             style={{ color: 'var(--color-accent)', fontFamily: 'var(--font-body)' }}>
-            02 — Projects
+            04 — Projects
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(0,217,255,0.15)' }} />
         </div>

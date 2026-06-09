@@ -1,0 +1,76 @@
+---
+title: "Thread.sleep(8000)"
+date: "2026-05-21"
+excerpt: "The API service had an 8-second Thread.sleep() in the data creation flow. It had been there for years. Here's how we replaced it with Redis coordination and event-driven architecture."
+featured: true
+---
+
+The API service had an 8-second `Thread.sleep()` in the data creation flow. It had been there for years. We knew it was a problem. Threads sitting idle, users staring at screens that hadn't updated, child entities created before their parents had persisted. But the fix wasn't obvious, because the delay was papering over a real coordination problem.
+
+I worked on the internal operations management application at FedEx. The architecture has three layers: the outer edge (our user-facing apps, used by facility managers and district engineers), the inner edge (shared platform APIs that persist data), and CORE (the persistent datastore, the source of truth). Our team owned the outer edge, which has a frontend, an API service, and a messaging service. The frontend talks to the API service, which talks to the inner edge platform APIs for CRUD. The messaging service communicates with the inner edge in two ways: sending REST requests and receiving JMS messages.
+
+![Architecture overview](/blog/thread-sleep-8000/architecture-overview.svg)
+
+## Grandparents before parents before children
+
+In the simplest terms, our application is responsible for managing the entire lifecycle of hierarchical business entities (there are more non-linear relationships too, but not super relevant here). Because of the hierarchical relationship, grandparents need to exist and persist completely before parents can, and the same is true for parent-child entity relationships.
+
+The platform team rejects any CRUD requests where any of the parent entities do not exist or had not persisted fully (which makes sense because how can children exist before parents, right!)
+
+## Sleep and pray
+
+The legacy API application logic had a big flaw: it used hardcoded delays to allow for all the background processing and JMS delivery all the way from CORE to the outer edge. After sending a parent entity creation request, the API service would sleep for a preconfigured duration before sending the child entity request, hoping the parent had persisted by then.
+
+This played out in two ways. If the parent persisted quickly, the thread just sat there doing nothing for the remainder of the delay. If the parent hadn't persisted yet (for any number of reasons), the child creation request would fire before the parent existed. The hierarchy breaks, the platform rejects the request, and the user either has to resubmit or escalate to engineering.
+
+The impact was significant. Users would see parent entities without their children, or stale data that hadn't reflected their submissions. Staff planning for facility operations couldn't rely on the data being accurate before deadlines. Downstream systems dependent on this data inherited the inconsistencies. I've heard horror stories from team leads where the team dealt with a steady stream of support tickets, and there were multiple instances of manually fixing data in production.
+
+![Before: hardcoded delay architecture](/blog/thread-sleep-8000/before-hardcoded-delay.svg)
+
+## Replacing the sleep with events
+
+The solution here is an intermediate layer for temporary state persistence. Redis sits alongside the API and messaging service as a coordination layer, the API writes state on the way in, the messaging service signals completion, and keyspace notifications close the loop.
+
+This is what the process looked like:
+
+1. The API application receives client requests, forwards to the platform API, and then persists Redis hashes (specifically hashes because they let us store multiple fields per request: ID, request type, JSON message etc, under a single key)
+2. The platform API processes the request, persists to the datastore.
+3. The datastore notifies the platform team's messaging service via JMS when everything persisted asynchronously, after which the platform team writes an NOI (Notification of Interest) message of their own through JMS to the outer edge.
+4. On the outer edge, the messaging service is responsible for processing and acknowledging JMS messages. While it does not create any data, it forwards important information from the JMS message it just received back to the API service to process further.
+5. The API service, on receiving this request from the messaging service, fetches info from Redis and sends requests to the platform API to create children entities.
+6. The same process traces all the way from the platform API back to the messaging service, but this time for the child entity.
+7. When the messaging service receives a child entity message this time, it deletes the key associated to its parent from Redis.
+8. The API application is listening to Redis Keyspace Notifications from the Redis instance for that particular key. Keyspace notifications are a relatively uncommon Redis feature worth explaining. When enabled (via `CONFIG SET notify-keyspace-events Eg` or equivalent in the Redis configuration), Redis publishes events to internal pub/sub channels whenever keys are modified. In our case, the API service subscribes to `__keyevent@0__:your-prefix` events filtered to the relevant key prefix, using a persistent Jedis connection that stays open for the lifetime of the application. When the messaging service deletes a key in step 7, Redis automatically publishes a deletion event, and the API service receives it in near real-time; no polling required.
+9. Once the key has been evicted, it informs the client using an SSE (Server-sent events) channel and the UI gets updated automatically. The client initiates an `EventSource` request when the creation flow begins, and the server holds that connection open to push the completion event when it arrives. If the connection drops (browser tab closed, network hiccup), the client fetches refreshed data on the next page load, and the user sees the correct state regardless.
+
+![After: Redis coordination architecture](/blog/thread-sleep-8000/after-redis-coordination.svg)
+
+## Why Redis
+
+Redis was the natural fit for a few reasons. First, it was already a mature part of our infrastructure at FedEx; the team had operational experience running it. Second, the in-memory read/write speed meant the coordination layer added negligible latency to the request path. Third, and most importantly, Redis gave us two features that mapped perfectly to our problem: TTLs (time-to-live) on keys (a built-in safety net for orphaned state) and keyspace notifications (an event-driven mechanism to react to key changes without polling). The combination of these two features meant we could build the entire coordination flow without any custom polling logic or additional message broker infrastructure.
+
+Some common alternatives that come to mind are a database table with a polling mechanism, or a message broker like Kafka. For the database option, the API service could write state to a table and poll it every few seconds to check if the parent entity had persisted. This would have worked, but polling introduces latency (you're always waiting for the next poll interval) and unnecessary database load, especially at higher request volumes. A message broker could work, but that felt like bringing in heavy infrastructure for a relatively simple coordination problem. We didn't need durable message replay or consumer groups, we needed fast, temporary state that could notify the API service the moment something changed.
+
+## What can still go wrong
+
+**JMS messages never arrive.** If the platform team does not send us messages, that is a very rare but a considerable problem. In practice, I have only seen instances of this issue one or two times in the time I worked there.
+
+**API service restarts or Redis Keyspace Notifications fail.** An important caveat about keyspace notifications: they use Redis pub/sub under the hood, which is fire-and-forget. If the API service disconnects and reconnects, any events published during that window are lost because Redis does not buffer them. In practice, this means if the API service restarts mid-flow, the SSE notification to the client will never fire for in-flight requests. However, this is a UX-level inconsistency, not a data integrity issue. The underlying entity creation still completes through the normal JMS flow regardless of whether the API service is listening. The user refreshes the page and sees everything persisted correctly.
+
+**Child entity creation fails.** If the child entity creation fails on the platform side, this has to be in the REST request which the API service sends to the platform APIs. All API requests sent from outer edge to inner edge have retries configured with exponential backoff up to 3 attempts, so transient failures are handled automatically. If all retries are exhausted, the Redis key remains in place until its 5-minute TTL expires, at which point it's silently evicted. The parent entity exists but the child does not; the same inconsistency as the JMS-lost scenario. The user would need to re-trigger child creation manually. In practice, platform API failures that survive 3 retries are rare enough that we haven't needed to build an automated recovery mechanism for this path.
+
+One thing that makes the fire-and-forget nature of keyspace notifications more acceptable than it might sound is our audit logging setup. We audit every NOI message the JMS consumer processes, and we also log every interaction between the messaging service and the API service; every REST call and every Redis interaction. This means if a JMS message arrives at the messaging service but the subsequent REST call to the API service fails, or a Redis operation doesn't go through, we can trace it. We don't need infrastructure-level durability guarantees (like what Redis Streams with consumer groups would give us) because our observability layer already covers the gap. If something drops, we know where it dropped. That said, this works because the failure rate is low enough that manual investigation is feasible.
+
+## From 8+ seconds to under 2
+
+The most immediate and measurable change was in the user experience. The average time from a user submitting a creation request to seeing the result in the UI dropped from 8+ seconds (the old hardcoded delay, during which the screen showed inconsistent states) to under 2 seconds for the typical case where the platform processes the request quickly. In the slow case (high traffic on the inner edge), the user simply waits until the actual processing is done rather than an arbitrary fixed duration, and the UI updates automatically via SSE without requiring a manual refresh. While the key is persisted in Redis, the API service can serve the UI a temporary "pending" state, communicating to the user that their request is being processed.
+
+On the backend side, we effectively eliminated the class of data inconsistency bugs caused by premature child entity creation. Before this change, the engineering team was handling several support tickets per sprint related to missing child entities or broken hierarchies that required manual data fixes in production. After the rollout, that category of tickets dropped to near-zero. The remaining edge cases are limited to the rare failure modes described above.
+
+Thread utilization also improved noticeably. The old approach held a thread hostage for 8 seconds per request doing absolutely nothing. Under load, this meant the API service's thread pool could get saturated not because it was doing work, but because threads were waiting. With the event-driven approach, threads are freed immediately after the initial request is forwarded, and only re-engaged when there's actual work to do (sending the child creation request, firing the SSE event).
+
+## Thoughts for the future
+
+The 5-minute TTL has been fine in practice, but it's a blunt instrument. If I were iterating on this, I'd add a lightweight reconciliation job that runs every few minutes, checks for Redis keys older than, say, 3 minutes, and proactively alerts or retries rather than waiting for silent expiration. Right now, if a JMS message is lost, we don't know about it until someone notices the missing child entity. That's an acceptable gap given how rare it is, but it's the kind of thing that becomes less acceptable as the system scales.
+
+Finally, the SSE approach works well for our use case (single-tab, internal tool used by a known set of users), but there's a limitation worth noting. Browsers cap the number of concurrent `EventSource` connections per domain, typically 6 under HTTP/1.1. For us that's fine since our users rarely have multiple tabs open, but it would become a real problem for workflows with many tabs or multiple long-lived streams per origin. Something I've been reading about recently is that HTTP/2 largely solves this by multiplexing multiple streams over a single TCP connection, replacing the low HTTP/1.1 connection cap with a much higher negotiated stream limit. We're not on HTTP/2 yet for this service, but it's an interesting avenue: it would let us keep SSE (which is the right tool here since we only need server-to-client push) while reducing the main browser-side scaling constraint.
