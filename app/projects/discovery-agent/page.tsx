@@ -1,6 +1,4 @@
-'use client';
 
-import { useEffect, useRef } from 'react';
 import { Mail } from 'lucide-react';
 
 /* ─── Hero SVG: Slack Digest Schematic ───────────────────────────────────── */
@@ -130,23 +128,12 @@ function SlackDigestVisual() {
 
 /* ─── Page ─────────────────────────────────────────────────────────────────── */
 export default function AIAgentPage() {
-  const pageRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('cs-visible'); obs.unobserve(e.target); } }),
-      { threshold: 0.1 }
-    );
-    pageRef.current?.querySelectorAll('.cs-reveal').forEach(el => obs.observe(el));
-    return () => obs.disconnect();
-  }, []);
-
   return (
-    <div ref={pageRef} style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh', paddingTop: '60px' }}>
+    <div style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh', paddingTop: '60px' }}>
 
       {/* ── Hero ── */}
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-16 pb-0">
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(99,102,241,0.7)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
             Agentic AI · Python · LangGraph
           </span>
@@ -158,17 +145,17 @@ export default function AIAgentPage() {
           </span>
         </div>
 
-        <h1 className="cs-reveal opacity-0"
+        <h1 className=""
           style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(3rem, 7vw, 6.5rem)', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.0, letterSpacing: '-0.03em', marginBottom: '1rem' }}>
           Discovery Agent
         </h1>
-        <p className="cs-reveal opacity-0 mb-10"
+        <p className="mb-10"
           style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(1rem, 1.5vw, 1.2rem)', color: 'var(--color-text-muted)', maxWidth: '55ch', lineHeight: 1.6 }}>
           AI agent that finds relevant Twitter conversations, drafts replies in your voice, and never posts without your approval.
         </p>
 
         {/* Hero visual */}
-        <div className="cs-reveal opacity-0 relative overflow-hidden"
+        <div className="relative overflow-hidden"
           style={{ borderRadius: '6px', border: '1px solid rgba(99,102,241,0.2)', boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 40px rgba(99,102,241,0.05)' }}>
           <SlackDigestVisual />
           <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
@@ -180,7 +167,7 @@ export default function AIAgentPage() {
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-24 lg:py-32">
 
         {/* Overview */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-accent)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             01 — Overview
           </span>
@@ -188,26 +175,26 @@ export default function AIAgentPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-12 lg:gap-20 mb-24 items-start">
-          <div className="cs-reveal opacity-0 lg:sticky lg:top-28">
+          <div className="lg:sticky lg:top-28">
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
               An agent that operates on your behalf — but only with your permission.
             </h2>
           </div>
           <div className="space-y-6">
-            <p className="cs-reveal opacity-0" style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', lineHeight: '1.85', color: 'var(--color-text)' }}>
+            <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', lineHeight: '1.85', color: 'var(--color-text)' }}>
               Most engagement tools either blast generic replies or require you to manually trawl feeds. Discovery Agent sits in between. It profiles your skills and interests, searches for conversations that match, ranks them, drafts replies that sound like you, and delivers a curated digest to Slack. You review, approve or reject, and the agent posts. Every tweet requires explicit approval; the agent never acts autonomously.
             </p>
-            <p className="cs-reveal opacity-0" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
+            <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
               Under the hood, the system runs as a multi-stage pipeline: search, filter, rank, draft, digest, approve. Persistent state backs every stage so the pipeline survives restarts. Execution pauses at the approval stage and resumes asynchronously when decisions arrive through Slack, potentially hours later. Human-in-the-loop wasn&apos;t bolted on as a safety feature. It was the architectural foundation from the start.
             </p>
-            <p className="cs-reveal opacity-0" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
+            <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
               The agent improves over time. Approved and rejected items feed into preference profiles that shape future ranking. Query budgets shift toward categories that produce better results. Style traits extracted during onboarding keep drafts grounded in how you actually write, not how the model defaults to writing.
             </p>
           </div>
         </div>
 
         {/* Hard Parts */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-secondary)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             02 — The Hard Parts
           </span>
@@ -232,7 +219,7 @@ export default function AIAgentPage() {
               body: 'The model drafts replies that need to match your tone and reference your actual background, not hallucinate expertise. The ranking stage classifies each post\'s topic against your profile, separating what you know from what you don\'t. If a topic falls outside your domain, the drafter skips it entirely rather than fabricating authority. Style traits extracted during onboarding capture how you write (directness, vocabulary, personality) without encoding factual claims. The rest is structural: character limits, format validation, and rejection of drafts that read like they were obviously machine-generated.',
             },
           ].map(({ num, title, body }) => (
-            <div key={num} className="cs-reveal opacity-0 p-7"
+            <div key={num} className="p-7"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '4px' }}>
               <div className="flex items-start gap-4 mb-4">
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(99,102,241,0.5)', letterSpacing: '0.1em', marginTop: '2px' }}>{num}</span>
@@ -244,7 +231,7 @@ export default function AIAgentPage() {
         </div>
 
         {/* Outcomes */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-accent)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             03 — Outcomes
           </span>
@@ -258,7 +245,7 @@ export default function AIAgentPage() {
             { metric: '5', label: 'Pipeline stages orchestrated with persistent state and async resumption' },
             { metric: '23 days', label: 'First commit to v1.0 shipped' },
           ].map(({ metric, label }) => (
-            <div key={label} className="cs-reveal opacity-0 p-6"
+            <div key={label} className="p-6"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '4px' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 700, color: '#6366f1', lineHeight: 1, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
                 {metric}
@@ -269,14 +256,14 @@ export default function AIAgentPage() {
         </div>
 
         {/* Tech stack */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-secondary)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             04 — Stack
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(99,102,241,0.15)' }} />
         </div>
 
-        <div className="cs-reveal opacity-0 flex flex-wrap gap-3 mb-24">
+        <div className="flex flex-wrap gap-3 mb-24">
           {['Python 3.12', 'LangGraph', 'Slack Bolt', 'Anthropic Claude', 'PostgreSQL', 'pgvector', 'SQLAlchemy', 'Alembic', 'Docker', 'httpx', 'pytest'].map(tag => (
             <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(99,102,241,0.7)', border: '1px solid rgba(99,102,241,0.2)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(99,102,241,0.05)' }}>
               {tag}
@@ -285,7 +272,7 @@ export default function AIAgentPage() {
         </div>
 
         {/* What's Next */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-accent)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             05 — What&apos;s Next
           </span>
@@ -293,12 +280,12 @@ export default function AIAgentPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-12 lg:gap-20 mb-24 items-start">
-          <div className="cs-reveal opacity-0 lg:sticky lg:top-28">
+          <div className="lg:sticky lg:top-28">
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
               From personal tool to multi-user product.
             </h2>
           </div>
-          <div className="cs-reveal opacity-0 p-7" style={{ backgroundColor: '#0d1230', border: '1px solid rgba(99,102,241,0.12)', borderRadius: '4px' }}>
+          <div className="p-7" style={{ backgroundColor: '#0d1230', border: '1px solid rgba(99,102,241,0.12)', borderRadius: '4px' }}>
             {[
               { title: 'Multi-user isolation', desc: 'Other people should be able to connect their own accounts, run their own discovery cycles, and stay fully isolated — separate data, separate budgets, separate learning profiles.' },
               { title: 'Closing the feedback loop', desc: 'v1.0 collects signals (edits, approvals, engagement) but doesn\'t fully consume them yet. The next milestone wires those signals into a verifiable learning loop: preference extraction from edits, drift detection when drafts stop matching your voice, and learned scoring weights that adapt ranking to each user over time.' },
@@ -318,7 +305,7 @@ export default function AIAgentPage() {
         </div>
 
         {/* CTA */}
-        <div className="cs-reveal opacity-0 flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-8"
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-8"
           style={{ borderTop: '1px solid rgba(99,102,241,0.15)' }}>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
             This is a private project — but I&apos;m happy to talk through the engineering.
@@ -332,13 +319,6 @@ export default function AIAgentPage() {
         </div>
       </div>
 
-      <style>{`
-        .cs-reveal { transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
-        .cs-reveal.cs-visible { opacity: 1 !important; transform: translateY(0); }
-        .cs-reveal:nth-child(2) { transition-delay: 80ms; }
-        .cs-reveal:nth-child(3) { transition-delay: 160ms; }
-        .cs-reveal:nth-child(4) { transition-delay: 240ms; }
-      `}</style>
     </div>
   );
 }

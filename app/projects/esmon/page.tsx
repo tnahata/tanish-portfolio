@@ -1,6 +1,4 @@
-'use client';
 
-import { useEffect, useRef } from 'react';
 import { Mail } from 'lucide-react';
 
 /* ─── Hero SVG: ESMON App Interface Schematic ──────────────────────────────── */
@@ -145,23 +143,12 @@ function ESMONAppVisual() {
 
 /* ─── Page ─────────────────────────────────────────────────────────────────── */
 export default function ESMONPage() {
-  const pageRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('cs-visible'); obs.unobserve(e.target); } }),
-      { threshold: 0.1 }
-    );
-    pageRef.current?.querySelectorAll('.cs-reveal').forEach(el => obs.observe(el));
-    return () => obs.disconnect();
-  }, []);
-
   return (
-    <div ref={pageRef} style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh', paddingTop: '60px' }}>
+    <div style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh', paddingTop: '60px' }}>
 
       {/* ── Hero ── */}
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-16 pb-0">
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(0,217,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
             Indian Railway · Desktop App · Java
           </span>
@@ -173,17 +160,17 @@ export default function ESMONPage() {
           </span>
         </div>
 
-        <h1 className="cs-reveal opacity-0"
+        <h1 className=""
           style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(3rem, 7vw, 6.5rem)', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.0, letterSpacing: '-0.03em', marginBottom: '1rem' }}>
           ESMON
         </h1>
-        <p className="cs-reveal opacity-0 mb-10"
+        <p className="mb-10"
           style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(1rem, 1.5vw, 1.2rem)', color: 'var(--color-text-muted)', maxWidth: '55ch', lineHeight: 1.6 }}>
           Desktop analytics platform for the Indian Railway Speed and Energy Monitoring System.
         </p>
 
         {/* Hero visual */}
-        <div className="cs-reveal opacity-0 relative overflow-hidden"
+        <div className="relative overflow-hidden"
           style={{ borderRadius: '6px', border: '1px solid rgba(0,217,255,0.15)', boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 40px rgba(0,217,255,0.05)' }}>
           <ESMONAppVisual />
           {/* Bottom fade */}
@@ -196,7 +183,7 @@ export default function ESMONPage() {
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-24 lg:py-32">
 
         {/* Overview */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-accent)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             01 — Overview
           </span>
@@ -204,26 +191,26 @@ export default function ESMONPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-12 lg:gap-20 mb-24 items-start">
-          <div className="cs-reveal opacity-0 lg:sticky lg:top-28">
+          <div className="lg:sticky lg:top-28">
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
               Turning binary recordings into actionable insight.
             </h2>
           </div>
           <div className="space-y-6">
-            <p className="cs-reveal opacity-0" style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', lineHeight: '1.85', color: 'var(--color-text)' }}>
+            <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', lineHeight: '1.85', color: 'var(--color-text)' }}>
               Monitoring devices on locomotives record detailed journey data—speed, energy, events—that engineers need to analyse and report on. The raw output from these devices is binary and completely unusable without software built specifically to decode it. I built the application that bridges that gap: load recordings from SD cards or USB, parse them into structured data, and surface everything through filterable reports, time-series charts, and composed PDF exports ready for operational review.
             </p>
-            <p className="cs-reveal opacity-0" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
+            <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
               A core constraint shaped the architecture from the start: the application needs to work in environments where internet access cannot be assumed. These devices operate in remote areas, depots, and fieldwork settings—connectivity is unreliable or simply not there. Running everything locally with no server dependency wasn&apos;t a simplification, it was a requirement. Data stays on the machine, analysis happens offline, and the tool is usable anywhere the device is.
             </p>
-            <p className="cs-reveal opacity-0" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
+            <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
               The people using this daily are operations engineers, not software engineers—so it had to be fast, reliable, and self-explanatory across Windows and macOS. It ships as a signed installer on both platforms, produced from a single CI pipeline, with no manual packaging steps required.
             </p>
           </div>
         </div>
 
         {/* Hard Parts */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-secondary)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             02 — The Hard Parts
           </span>
@@ -248,7 +235,7 @@ export default function ESMONPage() {
               body: 'Embedding charts in PDFs required rendering them as images during generation—but the UI framework and the PDF pipeline have conflicting threading requirements. The rendering process needs to happen on the UI thread, while PDF generation runs in the background. Getting these two to cooperate without deadlocking, particularly on macOS, required understanding where the conflict originated and separating the rendering step from the export pipeline entirely using offscreen rendering techniques.',
             },
           ].map(({ num, title, body }) => (
-            <div key={num} className="cs-reveal opacity-0 p-7"
+            <div key={num} className="p-7"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(0,217,255,0.1)', borderRadius: '4px' }}>
               <div className="flex items-start gap-4 mb-4">
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(0,217,255,0.4)', letterSpacing: '0.1em', marginTop: '2px' }}>{num}</span>
@@ -260,7 +247,7 @@ export default function ESMONPage() {
         </div>
 
         {/* Outcomes */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-accent)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             03 — Outcomes
           </span>
@@ -274,7 +261,7 @@ export default function ESMONPage() {
             { metric: '2', label: 'Signed installers shipped from one CI pipeline' },
             { metric: '∞', label: 'Records processable — SQLite, local, no server' },
           ].map(({ metric, label }) => (
-            <div key={label} className="cs-reveal opacity-0 p-6"
+            <div key={label} className="p-6"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(0,217,255,0.08)', borderRadius: '4px' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.5rem, 4vw, 3.5rem)', fontWeight: 700, color: 'var(--color-accent)', lineHeight: 1, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
                 {metric}
@@ -285,14 +272,14 @@ export default function ESMONPage() {
         </div>
 
         {/* Tech stack */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-secondary)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             04 — Stack
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(99,102,241,0.15)' }} />
         </div>
 
-        <div className="cs-reveal opacity-0 flex flex-wrap gap-3 mb-24">
+        <div className="flex flex-wrap gap-3 mb-24">
           {['Java 21', 'JavaFX (FXML)', 'Spring Boot', 'Spring JDBC', 'SQLite', 'Apache PDFBox', 'Maven', 'jpackage', 'GitHub Actions', 'BellSoft Liberica JDK'].map(tag => (
             <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(0,217,255,0.65)', border: '1px solid rgba(0,217,255,0.18)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
               {tag}
@@ -301,7 +288,7 @@ export default function ESMONPage() {
         </div>
 
         {/* CTA */}
-        <div className="cs-reveal opacity-0 flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-8"
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-8"
           style={{ borderTop: '1px solid rgba(0,217,255,0.1)' }}>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
             This is a private project — but I&apos;m happy to talk through the engineering.
@@ -315,13 +302,6 @@ export default function ESMONPage() {
         </div>
       </div>
 
-      <style>{`
-        .cs-reveal { transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
-        .cs-reveal.cs-visible { opacity: 1 !important; transform: translateY(0); }
-        .cs-reveal:nth-child(2) { transition-delay: 80ms; }
-        .cs-reveal:nth-child(3) { transition-delay: 160ms; }
-        .cs-reveal:nth-child(4) { transition-delay: 240ms; }
-      `}</style>
     </div>
   );
 }

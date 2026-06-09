@@ -1,6 +1,4 @@
-'use client';
 
-import { useEffect, useRef } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 
 /* ─── Hero SVG: HybridFit Dashboard Schematic ──────────────────────────────── */
@@ -139,23 +137,12 @@ function HybridFitDashboard() {
 
 /* ─── Page ─────────────────────────────────────────────────────────────────── */
 export default function HybridFitPage() {
-  const pageRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('cs-visible'); obs.unobserve(e.target); } }),
-      { threshold: 0.1 }
-    );
-    pageRef.current?.querySelectorAll('.cs-reveal').forEach(el => obs.observe(el));
-    return () => obs.disconnect();
-  }, []);
-
   return (
-    <div ref={pageRef} style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh', paddingTop: '60px' }}>
+    <div style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh', paddingTop: '60px' }}>
 
       {/* ── Hero ── */}
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-16 pb-0">
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(34,197,94,0.7)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
             Full Stack · Next.js · MongoDB
           </span>
@@ -167,17 +154,17 @@ export default function HybridFitPage() {
           </span>
         </div>
 
-        <h1 className="cs-reveal opacity-0"
+        <h1 className=""
           style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(3rem, 7vw, 6.5rem)', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.0, letterSpacing: '-0.03em', marginBottom: '1rem' }}>
           HybridFit
         </h1>
-        <p className="cs-reveal opacity-0 mb-10"
+        <p className="mb-10"
           style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(1rem, 1.5vw, 1.2rem)', color: 'var(--color-text-muted)', maxWidth: '55ch', lineHeight: 1.6 }}>
           Training platform for athletes who train across multiple sports and disciplines.
         </p>
 
         {/* Hero visual */}
-        <div className="cs-reveal opacity-0 relative overflow-hidden"
+        <div className="relative overflow-hidden"
           style={{ borderRadius: '6px', border: '1px solid rgba(34,197,94,0.2)', boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 40px rgba(34,197,94,0.04)' }}>
           <HybridFitDashboard />
           <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
@@ -189,7 +176,7 @@ export default function HybridFitPage() {
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-24 lg:py-32">
 
         {/* Overview */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-accent)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             01 — Overview
           </span>
@@ -197,26 +184,26 @@ export default function HybridFitPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-12 lg:gap-20 mb-24 items-start">
-          <div className="cs-reveal opacity-0 lg:sticky lg:top-28">
+          <div className="lg:sticky lg:top-28">
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
               One platform for athletes who refuse to specialize.
             </h2>
           </div>
           <div className="space-y-6">
-            <p className="cs-reveal opacity-0" style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', lineHeight: '1.85', color: 'var(--color-text)' }}>
+            <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', lineHeight: '1.85', color: 'var(--color-text)' }}>
               Most fitness apps assume you have one sport. HybridFit doesn&apos;t. It&apos;s built for the athlete who runs in the morning, lifts in the afternoon, and plays soccer on weekends—and wants to see all of it in one place, structured, trackable, and adapting as their schedule changes. I&apos;m that athlete, and no existing tool handled multi-discipline training without friction. So I built the one I wanted.
             </p>
-            <p className="cs-reveal opacity-0" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
+            <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
               The platform handles multi-plan enrollment, detailed workout logging across four types (distance, strength, drill, and mixed sessions), a flexible program calendar, streak tracking, and a progress dashboard that shows you exactly where you are in each plan. The exercise library has 1,000+ curated entries built from multiple data sources, normalized into a consistent schema. AI coaching recommendations are the next layer being built on top.
             </p>
-            <p className="cs-reveal opacity-0" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
+            <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
               The hardest design problem wasn&apos;t any individual feature—it was making a system that complex feel simple to use daily. Every UI decision got evaluated against a single question: does this add friction or remove it? The answer shaped the architecture as much as the interface.
             </p>
           </div>
         </div>
 
         {/* Hard Parts */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-secondary)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             02 — The Hard Parts
           </span>
@@ -241,7 +228,7 @@ export default function HybridFitPage() {
               body: 'A 1,000+ entry exercise library doesn\'t exist until you build it. I wrote a data ingestion pipeline to pull exercises from multiple external sources, each with their own structure and format, and normalize them into a unified schema that the frontend and future recommendation engine could work against. The pipeline had to handle inconsistent naming, missing fields, duplicate entries across sources, and sport-specific conventions—running drills and strength exercises don\'t share the same vocabulary.',
             },
           ].map(({ num, title, body }) => (
-            <div key={num} className="cs-reveal opacity-0 p-7"
+            <div key={num} className="p-7"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(0,217,255,0.1)', borderRadius: '4px' }}>
               <div className="flex items-start gap-4 mb-4">
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(0,217,255,0.4)', letterSpacing: '0.1em', marginTop: '2px' }}>{num}</span>
@@ -253,7 +240,7 @@ export default function HybridFitPage() {
         </div>
 
         {/* Outcomes */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-accent)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             03 — Outcomes
           </span>
@@ -267,7 +254,7 @@ export default function HybridFitPage() {
             { metric: '5×', label: 'More concurrent users after connection pool tuning' },
             { metric: '4', label: 'Workout types: distance, strength, drill, mixed' },
           ].map(({ metric, label }) => (
-            <div key={label} className="cs-reveal opacity-0 p-6"
+            <div key={label} className="p-6"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(0,217,255,0.08)', borderRadius: '4px' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem, 3vw, 2.8rem)', fontWeight: 700, color: 'var(--color-accent)', lineHeight: 1, letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>
                 {metric}
@@ -278,14 +265,14 @@ export default function HybridFitPage() {
         </div>
 
         {/* Tech stack */}
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-secondary)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             04 — Stack
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(99,102,241,0.15)' }} />
         </div>
 
-        <div className="cs-reveal opacity-0 flex flex-wrap gap-3 mb-24">
+        <div className="flex flex-wrap gap-3 mb-24">
           {['Next.js 15', 'TypeScript', 'NextAuth (Credentials)', 'MongoDB', 'Mongoose', 'Zod', 'Vercel', 'Puppeteer', 'Shadcn/UI', 'TailwindCSS', 'Pinecone (planned)'].map(tag => (
             <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(34,197,94,0.65)', border: '1px solid rgba(34,197,94,0.18)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(34,197,94,0.04)' }}>
               {tag}
@@ -294,7 +281,7 @@ export default function HybridFitPage() {
         </div>
 
         {/* CTA */}
-        <div className="cs-reveal opacity-0 flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-8"
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-8"
           style={{ borderTop: '1px solid rgba(0,217,255,0.1)' }}>
           <a href="https://github.com/tnahata/hybrid-fit" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 shrink-0 px-6 py-3 transition-opacity duration-200 hover:opacity-80"
@@ -312,13 +299,6 @@ export default function HybridFitPage() {
         </div>
       </div>
 
-      <style>{`
-        .cs-reveal { transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
-        .cs-reveal.cs-visible { opacity: 1 !important; transform: translateY(0); }
-        .cs-reveal:nth-child(2) { transition-delay: 80ms; }
-        .cs-reveal:nth-child(3) { transition-delay: 160ms; }
-        .cs-reveal:nth-child(4) { transition-delay: 240ms; }
-      `}</style>
     </div>
   );
 }
