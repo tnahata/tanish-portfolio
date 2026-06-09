@@ -1,6 +1,3 @@
-'use client';
-
-import { useEffect, useRef } from 'react';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import VideoEmbed from '@/components/VideoEmbed';
 
@@ -171,28 +168,11 @@ export default function BlogPostView({
   readingTime: string;
   content: string;
 }) {
-  const pageRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add('cs-visible');
-            obs.unobserve(e.target);
-          }
-        }),
-      { threshold: 0.1 },
-    );
-    pageRef.current?.querySelectorAll('.cs-reveal').forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, []);
-
   return (
-    <div ref={pageRef} style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh', paddingTop: '60px' }}>
+    <div style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh', paddingTop: '60px' }}>
       {/* Hero */}
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-16 pb-0">
-        <div className="cs-reveal opacity-0 mb-6 flex items-center gap-5">
+        <div className="mb-6 flex items-center gap-5">
           <span
             style={{
               fontFamily: 'var(--font-mono)',
@@ -208,7 +188,6 @@ export default function BlogPostView({
         </div>
 
         <h1
-          className="cs-reveal opacity-0"
           style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'clamp(2.5rem, 6vw, 5rem)',
@@ -216,7 +195,7 @@ export default function BlogPostView({
             color: 'var(--color-text)',
             lineHeight: 1.05,
             letterSpacing: '-0.03em',
-            marginBottom: '1rem',
+            marginBottom: '1.5rem',
             maxWidth: '55ch',
           }}
         >
@@ -225,20 +204,9 @@ export default function BlogPostView({
       </div>
 
       {/* Content */}
-      <div
-        className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-24 lg:py-32"
-      >
-        <div className="cs-reveal opacity-0">
-          <MDXRemote source={content} components={mdxComponents} />
-        </div>
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-10 pb-24 lg:pt-12 lg:pb-32">
+        <MDXRemote source={content} components={mdxComponents} />
       </div>
-
-      <style>{`
-        .cs-reveal { transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
-        .cs-reveal.cs-visible { opacity: 1 !important; transform: translateY(0); }
-        .cs-reveal:nth-child(2) { transition-delay: 80ms; }
-        .cs-reveal:nth-child(3) { transition-delay: 160ms; }
-      `}</style>
     </div>
   );
 }
