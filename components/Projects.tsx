@@ -28,8 +28,8 @@ const PROJECTS = [
     subtitle: 'Indian Railway Analytics Desktop App',
     description:
       'Analytics desktop app for Indian Railways that turns raw binary journey data into filterable reports, time-series charts, and multi-section PDF exports. The hard parts: parsing undocumented binary formats, keeping filter state consistent across tabs without coupling the controllers, and rendering charts offscreen to prevent JavaFX deadlocks during PDF generation.',
-    tech: ['Java 21', 'JavaFX', 'Spring Boot', 'SQLite', 'Apache PDFBox', 'Maven', 'jpackage'],
-    status: 'Finishing',
+    tech: ['Java 17', 'JavaFX', 'Spring Boot', 'SQLite', 'Apache PDFBox', 'Maven', 'jpackage'],
+    status: 'Beta',
     statusColor: '#00d9ff',
     href: 'mailto:tanishnahata2002@gmail.com?subject=ESMON%20Project',
     cta: 'Ask me about it',
