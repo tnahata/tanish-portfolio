@@ -11,7 +11,7 @@ const PROJECTS = [
     title: 'Noiseless',
     subtitle: 'AI Agent for High-Signal Discovery on X',
     description:
-      'AI agent that profiles your expertise, searches X daily for conversations worth joining, and delivers ranked results to Slack for approval before posting. The hard parts: scheduling a pipeline that pauses for human decisions across users and timezones, enforcing per-user cost controls on every external call, and building preference profiles that improve ranking with every interaction.',
+      'AI agent that profiles your expertise, searches X daily for conversations worth joining, and delivers ranked results to Slack. Every interaction feeds back into ranking. The hard parts: scheduling a daily pipeline across users and timezones, enforcing per-user cost controls on every external call, and building accurate expertise profiles from noisy, cross-referenced sources.',
     tech: ['Python', 'FastAPI', 'LangGraph', 'Claude', 'PostgreSQL', 'Supabase', 'Railway'],
     status: 'Live',
     statusColor: '#22c55e',

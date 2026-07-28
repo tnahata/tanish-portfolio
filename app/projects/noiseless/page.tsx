@@ -20,7 +20,7 @@ function SlackDigestVisual() {
 
       {/* Sidebar content */}
       <text x="16" y="62" fontSize="9" fill="rgba(99,102,241,0.5)" fontFamily="monospace" letterSpacing="2">CHANNELS</text>
-      {['# noiseless', '# approved', '# rejected', '# agent-logs'].map((ch, i) => {
+      {['# noiseless', '# liked', '# skipped', '# agent-logs'].map((ch, i) => {
         const active = i === 0;
         return (
           <g key={ch}>
@@ -39,7 +39,7 @@ function SlackDigestVisual() {
       {[
         { label: 'Searched', value: '142 posts', y: 240 },
         { label: 'Ranked', value: '28 relevant', y: 260 },
-        { label: 'Drafted', value: '12 replies', y: 280 },
+        { label: 'Delivered', value: '12 items', y: 280 },
         { label: 'Cost', value: '$0.04', y: 300 },
       ].map(({ label, value, y }) => (
         <g key={label}>
@@ -51,7 +51,7 @@ function SlackDigestVisual() {
       {/* Pipeline indicator */}
       <rect x="12" y="320" width="156" height="1" fill="rgba(99,102,241,0.08)" />
       <text x="16" y="342" fontSize="9" fill="rgba(99,102,241,0.5)" fontFamily="monospace" letterSpacing="2">PIPELINE</text>
-      {['Search', 'Classify', 'Rank', 'Draft', 'Deliver'].map((stage, i) => {
+      {['Search', 'Classify', 'Rank', 'Deliver', 'Learn'].map((stage, i) => {
         const done = i < 5;
         return (
           <g key={stage}>
@@ -77,16 +77,16 @@ function SlackDigestVisual() {
       <text x="240" y="102" fontSize="10" fill="rgba(99,102,241,0.8)" fontFamily="monospace" fontWeight="bold">Noiseless</text>
       <text x="330" y="102" fontSize="8" fill="rgba(245,245,245,0.2)" fontFamily="monospace">2 min ago</text>
       <text x="218" y="120" fontSize="9" fill="rgba(245,245,245,0.55)" fontFamily="monospace">@user posted about building LangGraph agents in production...</text>
-      <text x="218" y="136" fontSize="8" fill="rgba(245,245,245,0.35)" fontFamily="monospace" fontStyle="italic">&quot;Interesting take — I&apos;ve been running a multi-stage pipeline with...&quot;</text>
+      <text x="218" y="136" fontSize="8" fill="rgba(245,245,245,0.35)" fontFamily="monospace" fontStyle="italic">Matches your expertise in agentic AI and production systems</text>
       <text x="218" y="152" fontSize="7" fill="rgba(245,245,245,0.2)" fontFamily="monospace">Topic: agentic-ai · Relevance: 0.91 · Category: expertise-match</text>
 
       {/* Action buttons for item 1 */}
-      <rect x="218" y="160" width="70" height="20" rx="3" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.4)" strokeWidth="1" />
-      <text x="253" y="174" textAnchor="middle" fontSize="9" fill="rgba(34,197,94,0.9)" fontFamily="monospace">Approve</text>
-      <rect x="296" y="160" width="60" height="20" rx="3" fill="rgba(255,80,80,0.1)" stroke="rgba(255,80,80,0.3)" strokeWidth="1" />
-      <text x="326" y="174" textAnchor="middle" fontSize="9" fill="rgba(255,80,80,0.7)" fontFamily="monospace">Reject</text>
-      <rect x="364" y="160" width="50" height="20" rx="3" fill="rgba(245,245,245,0.04)" stroke="rgba(245,245,245,0.1)" strokeWidth="1" />
-      <text x="389" y="174" textAnchor="middle" fontSize="9" fill="rgba(245,245,245,0.35)" fontFamily="monospace">Edit</text>
+      <rect x="218" y="160" width="50" height="20" rx="3" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.4)" strokeWidth="1" />
+      <text x="243" y="174" textAnchor="middle" fontSize="9" fill="rgba(34,197,94,0.9)" fontFamily="monospace">Like</text>
+      <rect x="276" y="160" width="65" height="20" rx="3" fill="rgba(255,80,80,0.1)" stroke="rgba(255,80,80,0.3)" strokeWidth="1" />
+      <text x="308" y="174" textAnchor="middle" fontSize="9" fill="rgba(255,80,80,0.7)" fontFamily="monospace">Dislike</text>
+      <rect x="349" y="160" width="50" height="20" rx="3" fill="rgba(245,245,245,0.04)" stroke="rgba(245,245,245,0.1)" strokeWidth="1" />
+      <text x="374" y="174" textAnchor="middle" fontSize="9" fill="rgba(245,245,245,0.35)" fontFamily="monospace">Skip</text>
 
       {/* Digest item 2 */}
       <rect x="200" y="198" width="680" height="100" rx="4" fill="rgba(99,102,241,0.06)" stroke="rgba(99,102,241,0.15)" strokeWidth="1" />
@@ -96,15 +96,15 @@ function SlackDigestVisual() {
       <text x="240" y="215" fontSize="10" fill="rgba(99,102,241,0.8)" fontFamily="monospace" fontWeight="bold">Noiseless</text>
       <text x="330" y="215" fontSize="8" fill="rgba(245,245,245,0.2)" fontFamily="monospace">2 min ago</text>
       <text x="218" y="233" fontSize="9" fill="rgba(245,245,245,0.55)" fontFamily="monospace">Thread about cost control patterns for autonomous agents...</text>
-      <text x="218" y="249" fontSize="8" fill="rgba(245,245,245,0.35)" fontFamily="monospace" fontStyle="italic">&quot;Cost enforcement before every call is non-negotiable — I run...&quot;</text>
+      <text x="218" y="249" fontSize="8" fill="rgba(245,245,245,0.35)" fontFamily="monospace" fontStyle="italic">Matches your expertise in agent reliability and cost management</text>
       <text x="218" y="265" fontSize="7" fill="rgba(245,245,245,0.2)" fontFamily="monospace">Topic: agent-reliability · Relevance: 0.87 · Category: expertise-match</text>
 
-      <rect x="218" y="273" width="70" height="20" rx="3" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.4)" strokeWidth="1" />
-      <text x="253" y="287" textAnchor="middle" fontSize="9" fill="rgba(34,197,94,0.9)" fontFamily="monospace">Approve</text>
-      <rect x="296" y="273" width="60" height="20" rx="3" fill="rgba(255,80,80,0.1)" stroke="rgba(255,80,80,0.3)" strokeWidth="1" />
-      <text x="326" y="287" textAnchor="middle" fontSize="9" fill="rgba(255,80,80,0.7)" fontFamily="monospace">Reject</text>
-      <rect x="364" y="273" width="50" height="20" rx="3" fill="rgba(245,245,245,0.04)" stroke="rgba(245,245,245,0.1)" strokeWidth="1" />
-      <text x="389" y="287" textAnchor="middle" fontSize="9" fill="rgba(245,245,245,0.35)" fontFamily="monospace">Edit</text>
+      <rect x="218" y="273" width="50" height="20" rx="3" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.4)" strokeWidth="1" />
+      <text x="243" y="287" textAnchor="middle" fontSize="9" fill="rgba(34,197,94,0.9)" fontFamily="monospace">Like</text>
+      <rect x="276" y="273" width="65" height="20" rx="3" fill="rgba(255,80,80,0.1)" stroke="rgba(255,80,80,0.3)" strokeWidth="1" />
+      <text x="308" y="287" textAnchor="middle" fontSize="9" fill="rgba(255,80,80,0.7)" fontFamily="monospace">Dislike</text>
+      <rect x="349" y="273" width="50" height="20" rx="3" fill="rgba(245,245,245,0.04)" stroke="rgba(245,245,245,0.1)" strokeWidth="1" />
+      <text x="374" y="287" textAnchor="middle" fontSize="9" fill="rgba(245,245,245,0.35)" fontFamily="monospace">Skip</text>
 
       {/* Digest item 3 — skipped (outside expertise) */}
       <rect x="200" y="311" width="680" height="75" rx="4" fill="rgba(245,245,245,0.02)" stroke="rgba(245,245,245,0.06)" strokeWidth="1" strokeDasharray="4 3" />
@@ -119,7 +119,7 @@ function SlackDigestVisual() {
       {/* Bottom status */}
       <rect y="424" width="900" height="16" fill="#0a0e27" />
       <rect y="424" width="900" height="1" fill="rgba(99,102,241,0.08)" />
-      <text x="200" y="435" fontSize="7" fill="rgba(245,245,245,0.25)" fontFamily="monospace">Session: 2025-07-25 · Searched: 142 · Ranked: 28 · Drafted: 12 · Skipped: 16 · Budget remaining: $0.96</text>
+      <text x="200" y="435" fontSize="7" fill="rgba(245,245,245,0.25)" fontFamily="monospace">Session: 2025-07-25 · Searched: 142 · Ranked: 28 · Delivered: 12 · Skipped: 16 · Budget remaining: $0.96</text>
       <circle cx="880" cy="432" r="3" fill="#6366f1" opacity="0.7" />
       <text x="870" y="435" textAnchor="end" fontSize="7" fill="rgba(99,102,241,0.6)" fontFamily="monospace">Awaiting</text>
     </svg>
@@ -151,7 +151,7 @@ export default function NoiselessPage() {
         </h1>
         <p className="mb-10"
           style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(1rem, 1.5vw, 1.2rem)', color: 'var(--color-text-muted)', maxWidth: '55ch', lineHeight: 1.6 }}>
-          AI agent that finds high-signal conversations on X, learns from your feedback, and never posts without your approval.
+          AI agent that finds high-signal conversations on X and learns from your feedback to surface better results over time.
         </p>
 
         {/* Hero visual */}
@@ -177,18 +177,18 @@ export default function NoiselessPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-12 lg:gap-20 mb-24 items-start">
           <div className="lg:sticky lg:top-28">
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-              Finds signal in the noise. Never posts without your say.
+              Finds signal in the noise. Gets smarter every time you use it.
             </h2>
           </div>
           <div className="space-y-6">
             <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', lineHeight: '1.85', color: 'var(--color-text)' }}>
-              Most engagement tools either blast generic replies or leave you to trawl feeds manually. Noiseless sits in between. It profiles your expertise from multiple sources (your posts, your code, websites you provide), searches X daily for conversations where your perspective adds value, and delivers ranked results to Slack. You review, approve or reject, and the agent posts on your behalf. Every post requires explicit approval; the system never acts on its own.
+              Most discovery tools either flood you with noise or require hours of manual searching. Noiseless sits in between. It profiles your expertise from multiple sources (your posts, your code, websites you provide), searches X daily for conversations where your perspective adds value, and delivers ranked results to Slack. You like, dislike, or skip each result, and that feedback shapes what surfaces next.
             </p>
             <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
-              The system runs as a scheduled daily pipeline: search, classify, rank, draft, deliver. Each user gets an isolated profile, budget, and learning history. Execution pauses at the approval stage and resumes asynchronously when decisions come through Slack (potentially hours later). Human-in-the-loop was the architectural starting point, not a safety feature added after the fact.
+              The system runs as a scheduled daily pipeline: search, classify, rank, deliver. Each user gets an isolated profile, budget, and learning history. After delivery, feedback flows back asynchronously through Slack as users react to results over hours. The learning loop was the architectural starting point, not something grafted on after the fact.
             </p>
             <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
-              The agent gets better the more you use it. Every approval, rejection, and skip feeds into preference profiles that reshape future ranking. Query strategies shift toward topics producing higher-signal results. Style traits extracted during onboarding keep drafts grounded in how you actually write, not how a language model defaults to writing.
+              The agent gets better the more you use it. Every like, dislike, and skip feeds into preference profiles that reshape future ranking. Query strategies shift toward topics producing higher-signal results. The profile itself is built from cross-referenced evidence across sources, not self-reported claims.
             </p>
           </div>
         </div>
@@ -206,17 +206,17 @@ export default function NoiselessPage() {
             {
               num: '01',
               title: 'Scheduling Discovery Across Users',
-              body: 'The pipeline runs on a daily schedule per user. Search, classification, ranking, and drafting execute autonomously, then the system pauses while waiting for approval decisions through Slack (potentially hours later). State survives process restarts and timezone differences. The orchestration layer handles the pause, but wiring it to an external approval surface required strict separation: the pipeline owns scheduling, Slack owns the user interface, and the database is the only shared state. Getting that boundary wrong means lost decisions or duplicate posts.',
+              body: 'The pipeline runs on a daily schedule per user, across timezones. Each run executes search, classification, ranking, and delivery autonomously, then feedback trickles back through Slack over hours as users react to results. State survives process restarts. The pipeline owns scheduling and orchestration, Slack owns the feedback interface, and the database is the only shared state between them. Getting that boundary wrong means lost feedback or results that never learn from user behavior.',
             },
             {
               num: '02',
               title: 'Spending Real Money on Every Request',
-              body: 'The agent makes API calls that cost real money: reads to find posts, writes to publish, and LLM calls to rank and draft. Without hard limits, a misconfigured run could burn through a budget in minutes. Cost enforcement runs before any work begins. Per-user daily and monthly limits are checked independently. Every external action gets a durable audit entry before the call is made, so if the process crashes mid-request, there is always a record of what was attempted. This is the only responsible way to run a system that spends money on behalf of other people.',
+              body: 'The agent makes API calls that cost real money: searches to find posts and LLM calls to classify, rank, and generate digests. Without hard limits, a misconfigured run could burn through a budget in minutes. Cost enforcement runs before any work begins. Per-user daily and monthly limits are checked independently. Every external action gets a durable audit entry before the call is made, so if the process crashes mid-request, there is always a record of what was attempted. This is the only responsible way to run a system that spends money on behalf of other people.',
             },
             {
               num: '03',
-              title: 'Learning Without Hallucinating Expertise',
-              body: 'The model drafts replies that need to match your tone and reference your actual background, not hallucinate expertise you do not have. The ranking stage classifies each conversation against your profile, separating what you know from what you do not. If a topic falls outside your domain, the system skips it entirely rather than fabricating authority. Profile building merges signals from multiple sources with confidence scoring: your posts carry more weight for interests, your code carries more weight for technical skills. The result is a profile grounded in evidence, not self-reported claims.',
+              title: 'Building Profiles from Noisy Sources',
+              body: 'The system needs to know what you are actually an expert in to decide which conversations are worth surfacing. But the inputs are noisy: social posts mix signal with performance, repositories vary in relevance, and self-reported interests are unreliable on their own. Profile building merges signals from multiple sources with confidence scoring: your posts carry more weight for interests, your code carries more weight for technical depth. Overlapping mentions across sources reinforce each other; isolated claims get discounted. If a topic falls outside your demonstrated expertise, the system skips it entirely rather than surfacing noise.',
             },
           ].map(({ num, title, body }) => (
             <div key={num} className="p-7"
@@ -240,10 +240,10 @@ export default function NoiselessPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-24">
           {[
-            { metric: '0', label: 'Posts published without explicit user approval' },
-            { metric: '6', label: 'Pipeline stages orchestrated with persistent state and async resumption' },
+            { metric: '3', label: 'Signal sources merged per user profile during onboarding' },
             { metric: 'Daily', label: 'Scheduled discovery runs per user, adapted to timezone' },
-            { metric: 'Adaptive', label: 'Ranking sharpens with every approve, reject, and skip' },
+            { metric: 'Adaptive', label: 'Ranking sharpens with every like, dislike, and skip' },
+            { metric: 'Per-user', label: 'Isolated budgets, profiles, and learning histories' },
           ].map(({ metric, label }) => (
             <div key={label} className="p-6"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '4px' }}>
@@ -287,8 +287,8 @@ export default function NoiselessPage() {
           </div>
           <div className="p-7" style={{ backgroundColor: '#0d1230', border: '1px solid rgba(99,102,241,0.12)', borderRadius: '4px' }}>
             {[
-              { title: 'Engagement-driven learning', desc: 'Track how approved posts perform after publication. The current loop learns from your decisions. The next version will learn from audience response.' },
-              { title: 'Voice evolution', desc: 'Style profiles that adapt as your writing naturally changes over time, instead of staying locked to the initial onboarding snapshot.' },
+              { title: 'Richer feedback dimensions', desc: 'Move beyond like and dislike to capture why a conversation was relevant or not, enabling more precise preference modeling over time.' },
+              { title: 'Profile evolution', desc: 'Expertise profiles that adapt as your interests and skills naturally shift, instead of staying locked to the initial onboarding snapshot.' },
               { title: 'Broader discovery', desc: 'Expanding beyond X to find relevant conversations wherever your audience participates.' },
             ].map(({ title, desc }, i) => (
               <div key={i} className="flex gap-3 mb-5 last:mb-0">
