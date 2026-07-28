@@ -156,7 +156,7 @@ export default function ESMONPage() {
           <span className="flex items-center gap-1.5"
             style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: '#00d9ff', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
             <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#00d9ff', display: 'inline-block' }} />
-            Finishing
+            Beta
           </span>
         </div>
 
@@ -280,7 +280,7 @@ export default function ESMONPage() {
         </div>
 
         <div className="flex flex-wrap gap-3 mb-24">
-          {['Java 21', 'JavaFX (FXML)', 'Spring Boot', 'Spring JDBC', 'SQLite', 'Apache PDFBox', 'Maven', 'jpackage', 'GitHub Actions', 'BellSoft Liberica JDK'].map(tag => (
+          {['Java 17', 'JavaFX (FXML)', 'Spring Boot', 'Spring JDBC', 'SQLite', 'Apache PDFBox', 'Maven', 'jpackage', 'GitHub Actions', 'BellSoft Liberica JDK'].map(tag => (
             <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(0,217,255,0.65)', border: '1px solid rgba(0,217,255,0.18)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
               {tag}
             </span>
