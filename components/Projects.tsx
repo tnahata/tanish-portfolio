@@ -15,7 +15,7 @@ const PROJECTS = [
     tech: ['Python', 'FastAPI', 'LangGraph', 'Claude', 'PostgreSQL', 'Supabase', 'Railway'],
     status: 'Live',
     statusColor: '#22c55e',
-    href: 'https://app.noiseless.io',
+    href: 'https://discoveryagent-production.up.railway.app/',
     cta: 'Try It',
     caseStudyLabel: 'View Case Study',
     slug: 'noiseless',

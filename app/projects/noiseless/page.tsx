@@ -345,7 +345,7 @@ export default function NoiselessPage() {
             Try it, follow the project, or reach out to discuss the engineering.
           </p>
           <div className="flex flex-wrap gap-3 shrink-0">
-            <a href="https://app.noiseless.io"
+            <a href="https://discoveryagent-production.up.railway.app/"
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-6 py-3 transition-opacity duration-200 hover:opacity-80"
               style={{ backgroundColor: '#6366f1', color: '#fff', fontFamily: 'var(--font-body)', fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', borderRadius: '3px' }}>
