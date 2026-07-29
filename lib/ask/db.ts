@@ -1,48 +1,25 @@
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg';
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from './schema';
 
 /**
- * Postgres client for the ask agent: lazily-created pools, a typed query helper, and a
- * transaction helper for the ingest reconcile transaction (see docs/ask-agent/02-ingest.md).
- *
- * This is the only module in `lib/ask` that touches the database driver. Everything else
- * calls `query` or `withTransaction`, never `pg` directly, so parameterization and pool
- * lifecycle stay enforced in one place.
- *
- * Two roles, two connection strings, on the request path this module serves: the running app
- * connects as `ask_app` over `DATABASE_URL` (`query`, `withTransaction`, unchanged names and
- * signatures), and `npm run ingest` connects as `ask_ingest` over `DATABASE_INGEST_URL`
- * (`ingestQuery`, `ingestWithTransaction`). See db/roles.sql for why those two roles hold
- * different grants. `DATABASE_ADMIN_URL`, the third connection string, is never used from this
- * module: only scripts/db-setup.ts and scripts/db-roles.ts read it, each opening its own
- * short-lived `pg.Client` directly rather than going through the pool this file manages.
+ * Postgres client for the ask agent: lazy per-role pools, a query/transaction helper, and
+ * Drizzle handles over the same pools. See docs/ask-agent/03-data-model.md for the role split.
  */
 
 const DATABASE_URL_ENV = 'DATABASE_URL';
 const DATABASE_INGEST_URL_ENV = 'DATABASE_INGEST_URL';
 
-/**
- * Small, serverless-appropriate pool settings. This runs on Vercel's Node runtime
- * (docs/ask-agent/05-runtime.md), where a warm function instance reuses this module's
- * globals but many instances can exist at once, and each holds its own pool. A generous
- * `max` per instance multiplies across instances and burns through Neon's connection limit
- * fast; this site's own traffic estimate is ~60 turns/day/user, so a handful of connections
- * per instance is already more than the request path ever needs concurrently.
- */
+/** Small: each serverless instance holds its own pool, and a generous `max` multiplies across
+ *  every instance running at once against Neon's shared connection limit. */
 const POOL_MAX = 5;
 
-/**
- * Idle connections are released quickly rather than held open. Serverless instances are
- * ephemeral and a connection sitting idle in a pool that may freeze mid-request is a
- * connection Neon still counts against its limit for no benefit.
- */
+/** Released quickly: an idle connection in a pool that may freeze mid-request still counts
+ *  against Neon's connection limit for no benefit. */
 const IDLE_TIMEOUT_MS = 10_000;
 
-/**
- * Generous enough to survive a cold Neon wake. docs/ask-agent/05-runtime.md notes cold
- * start plus Neon scale-to-zero can cost 0.5 to 5 seconds before the first byte; doubling
- * the worst case leaves room for that wake without making a genuinely dead database hang
- * the request for a long time.
- */
+/** Generous enough to survive a cold Neon wake (0.5-5s, see docs/ask-agent/05-runtime.md)
+ *  without hanging on a genuinely dead database for long. */
 const CONNECT_TIMEOUT_MS = 10_000;
 
 /** Thrown when the database is unreachable or misconfigured before any query runs. */
@@ -54,21 +31,13 @@ export class AskDbConfigError extends Error {
 }
 
 declare global {
-  // Next.js dev mode re-evaluates this module on every hot reload, but the Node process
-  // (and therefore globalThis) survives across reloads. Caching pools on globalThis instead
-  // of a plain module-level variable is what stops each reload from opening a new pool on
-  // top of the last one and slowly exhausting Neon's connection limit.
-  //
-  // Keyed by env var name (`DATABASE_URL`, `DATABASE_INGEST_URL`), not a single `Pool`: this
-  // module now serves two different roles over two different connection strings (`ask_app` /
-  // `ask_ingest`, see db/roles.sql), each of which needs its own pool. A single cached `Pool`
-  // would silently hand ingest's connection the app's pool (or vice versa) whichever env var
-  // happened to be resolved first in a process where both are read, which is a correctness
-  // bug, not a cosmetic one: every query after that point would run as the wrong role. A Map
-  // keyed by env var name gives each connection string its own pool while still surviving hot
-  // reload the same way the single-pool version did.
-  // `var` is required syntax for ambient global augmentation; `let`/`const` are not allowed here.
+  // Cached on globalThis (survives hot reload), keyed per env var so ask_app and ask_ingest
+  // never share a pool. `var` is required syntax here. See docs/ask-agent/03-data-model.md.
   var __askPgPools: Map<string, Pool> | undefined;
+
+  // Same reasoning as __askPgPools. A NodePgDatabase is a stateless wrapper around that pool,
+  // so caching it is about object identity, not avoiding a real connection.
+  var __askDrizzleDbs: Map<string, NodePgDatabase<typeof schema>> | undefined;
 }
 
 function getPoolCache(): Map<string, Pool> {
@@ -102,12 +71,8 @@ function createPool(envVar: string): Pool {
   });
 }
 
-/**
- * Returns the pool for `envVar`, creating it on first use and reusing it after. Defaults to
- * `DATABASE_URL`, the app's own connection, so existing callers that never think about which
- * connection they want keep getting the one they always got. Never logs or otherwise exposes
- * the connection string: only `pg` itself sees it, via `connectionString`.
- */
+/** Returns the pool for `envVar` (default `DATABASE_URL`), creating it on first use. Never
+ *  logs the connection string; only `pg` itself sees it. */
 export function getPool(envVar: string = DATABASE_URL_ENV): Pool {
   const cache = getPoolCache();
   const cached = cache.get(envVar);
@@ -119,25 +84,47 @@ export function getPool(envVar: string = DATABASE_URL_ENV): Pool {
   return pool;
 }
 
-/**
- * A query function shaped like `query` below, scoped to one client. The transaction
- * callback receives this instead of the module-level `query` so every statement inside a
- * transaction runs on the same connection, not a fresh one pulled from the pool.
- */
+function getDrizzleCache(): Map<string, NodePgDatabase<typeof schema>> {
+  if (!globalThis.__askDrizzleDbs) {
+    globalThis.__askDrizzleDbs = new Map<string, NodePgDatabase<typeof schema>>();
+  }
+  return globalThis.__askDrizzleDbs;
+}
+
+/** Returns the Drizzle handle for `envVar`, wrapping and caching `getPool(envVar)` the same
+ *  way. Not exported: `db()` and `ingestDb()` below are the only call sites this project needs. */
+function getDrizzleDb(envVar: string = DATABASE_URL_ENV): NodePgDatabase<typeof schema> {
+  const cache = getDrizzleCache();
+  const cached = cache.get(envVar);
+  if (cached) {
+    return cached;
+  }
+  const instance = drizzle(getPool(envVar), { schema });
+  cache.set(envVar, instance);
+  return instance;
+}
+
+/** The app's own Drizzle handle. A function, not a top-level const, because eagerly reading
+ *  `process.env` would run before scripts finish loading their own env vars. Call as `db().select()...`. */
+export function db(): NodePgDatabase<typeof schema> {
+  return getDrizzleDb(DATABASE_URL_ENV);
+}
+
+/** Ingest's Drizzle handle (`ask_ingest` over `DATABASE_INGEST_URL`). Same laziness reasoning
+ *  as `db()`. Used by scripts/ingest.ts only; the running app never imports this. */
+export function ingestDb(): NodePgDatabase<typeof schema> {
+  return getDrizzleDb(DATABASE_INGEST_URL_ENV);
+}
+
+/** A query function shaped like `query` below, scoped to one client, so a transaction callback
+ *  runs every statement on the same connection instead of a fresh one from the pool. */
 export type AskQueryFn = <Row extends QueryResultRow = QueryResultRow>(
   text: string,
   params: unknown[]
 ) => Promise<QueryResult<Row>>;
 
-/**
- * Runs a parameterized query against the pool for `envVar` (`getPool`'s own default,
- * `DATABASE_URL`, if omitted).
- *
- * `params` is required, not optional, so a call site cannot pass a single pre-built string
- * and read as safe: every query has to name its bound values, even when there are none
- * (`query(sql, [])`). SQL is never built by concatenation in this file or expected to be
- * for callers of this function.
- */
+/** Runs a parameterized query against the pool for `envVar` (defaults to `DATABASE_URL`).
+ *  `params` is required, not optional, so no call site can pass an unparameterized string as safe. */
 async function queryOn<Row extends QueryResultRow = QueryResultRow>(
   envVar: string,
   text: string,
@@ -146,22 +133,8 @@ async function queryOn<Row extends QueryResultRow = QueryResultRow>(
   return getPool(envVar).query<Row>(text, params);
 }
 
-/**
- * Runs `callback` inside a single transaction on the pool for `envVar`: `begin`, the
- * callback, `commit`. Any throw from the callback (or from `commit` itself) triggers a
- * `rollback` and rethrows the original error. This is the shape the ingest reconcile needs
- * (see docs/ask-agent/02-ingest.md): upsert documents and chunks, sweep deleted ones, and
- * update `corpus_meta`, all atomically so MVCC keeps concurrent readers on the previous
- * snapshot until commit.
- *
- * The callback gets its own `AskQueryFn` bound to the transaction's client, not `query` or
- * `ingestQuery`, so every statement inside the callback runs on the same connection and
- * participates in the transaction.
- *
- * Rollback is defensive: if it fails too, that failure is not what gets thrown. Masking the
- * original error with a rollback error would hide the actual cause and leave a future
- * reader debugging the wrong problem.
- */
+/** Runs `callback` inside one transaction on the pool for `envVar`: begin, callback, commit,
+ *  rollback and rethrow on failure. See docs/ask-agent/02-ingest.md for the transaction this serves. */
 async function withTransactionOn<T>(
   envVar: string,
   callback: (query: AskQueryFn) => Promise<T>
@@ -191,11 +164,7 @@ async function withTransactionOn<T>(
   }
 }
 
-/**
- * The app's own connection (`ask_app` over `DATABASE_URL`). Signature and behavior unchanged
- * from before this module supported more than one connection string, so every existing call
- * site keeps compiling and keeps talking to the same role it always did.
- */
+/** The app's own connection (`ask_app` over `DATABASE_URL`). */
 export async function query<Row extends QueryResultRow = QueryResultRow>(
   text: string,
   params: unknown[]
@@ -210,11 +179,8 @@ export async function withTransaction<T>(
   return withTransactionOn(DATABASE_URL_ENV, callback);
 }
 
-/**
- * Ingest's connection (`ask_ingest` over `DATABASE_INGEST_URL`). Used only by
- * scripts/ingest.ts; the running app never imports this. Same shape as `query`, over a
- * separate pool cached under its own key (see the `globalThis.__askPgPools` comment above).
- */
+/** Ingest's connection (`ask_ingest` over `DATABASE_INGEST_URL`). Used only by scripts/ingest.ts;
+ *  the running app never imports this. Same shape as `query`, over its own cached pool. */
 export async function ingestQuery<Row extends QueryResultRow = QueryResultRow>(
   text: string,
   params: unknown[]

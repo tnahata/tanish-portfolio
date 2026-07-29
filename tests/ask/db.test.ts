@@ -1,25 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AskDbConfigError, getPool } from '../../lib/ask/db';
+import { AskDbConfigError, db, getPool, ingestDb } from '../../lib/ask/db';
 
 /**
- * `getPool` is the one piece of lib/ask/db.ts that is safe to exercise without a real database:
- * the `pg` `Pool` constructor does no I/O (it only connects lazily, on `.connect()`/`.query()`),
- * so constructing one against a fake, unreachable connection string and asserting on which
- * object comes back is a genuine test of the caching logic, not a mock standing in for one.
- *
- * This is a regression test for the bug the brief called out directly: caching a single `Pool`
- * on `globalThis` (as this module did before it needed to serve two roles, `ask_app` over
- * DATABASE_URL and `ask_ingest` over DATABASE_INGEST_URL) means the second connection string
- * ever resolved in a process would silently reuse the first one's pool, and every query after
- * that point would run as the wrong role. The fix keys the cache by env var name instead of
- * holding one pool; the tests below would fail against the single-pool version (the "two
- * different connection strings" test would see `appPool === ingestPool`).
- *
- * `query`, `withTransaction`, `ingestQuery`, and `ingestWithTransaction` are not exercised here:
- * each is a thin, directly-inspectable wrapper around `getPool(ENV_VAR).query(...)` /
- * `getPool(ENV_VAR).connect()`, and actually calling one would attempt a real network connection
- * to whatever fake connection string is configured, which is not meaningfully testable without a
- * database. `getPool` is where the caching behavior these wrappers depend on actually lives.
+ * getPool/db()/ingestDb() do no I/O until a query runs, so asserting on object identity against
+ * a fake connection string is a genuine cache test, not a mock. Regression coverage for a real
+ * bug: caching one pool on globalThis meant the second connection string resolved in a process
+ * silently reused the first role's pool. The four query/transaction wrappers, thin passthroughs
+ * to getPool, are not exercised here; calling one would need a real network connection.
  */
 
 const APP_URL_VAR = 'DATABASE_URL';
@@ -30,6 +17,7 @@ const originalIngestUrl = process.env[INGEST_URL_VAR];
 
 function clearPoolCache(): void {
   globalThis.__askPgPools = undefined;
+  globalThis.__askDrizzleDbs = undefined;
 }
 
 async function endCachedPools(): Promise<void> {
@@ -96,5 +84,58 @@ describe('getPool: caching per connection-string env var', () => {
     // And each stays independently cached afterward, not just distinct on first creation.
     expect(getPool(APP_URL_VAR)).toBe(appPool);
     expect(getPool(INGEST_URL_VAR)).toBe(ingestPool);
+  });
+});
+
+describe('db() / ingestDb(): missing configuration', () => {
+  it('throws AskDbConfigError naming DATABASE_URL when db() is called with it unset', () => {
+    delete process.env[APP_URL_VAR];
+
+    expect(() => db()).toThrow(AskDbConfigError);
+    expect(() => db()).toThrow(/DATABASE_URL/);
+    // The lazy, function-shaped export never touches process.env until called, so a failed
+    // call must not have left a half-built handle behind for either cache.
+    expect(globalThis.__askDrizzleDbs?.has(APP_URL_VAR)).not.toBe(true);
+    expect(globalThis.__askPgPools?.has(APP_URL_VAR)).not.toBe(true);
+  });
+
+  it('throws AskDbConfigError naming DATABASE_INGEST_URL when ingestDb() is called with it unset', () => {
+    delete process.env[INGEST_URL_VAR];
+
+    expect(() => ingestDb()).toThrow(AskDbConfigError);
+    expect(() => ingestDb()).toThrow(/DATABASE_INGEST_URL/);
+  });
+});
+
+describe('db() / ingestDb(): caching per connection-string env var', () => {
+  it('returns the same handle object on a second call', () => {
+    process.env[APP_URL_VAR] = 'postgres://app-fake-host/db';
+
+    const first = db();
+    const second = db();
+
+    expect(second).toBe(first);
+  });
+
+  it('creates two independent handles for db() and ingestDb(), not a shared one', () => {
+    process.env[APP_URL_VAR] = 'postgres://app-fake-host/app_db';
+    process.env[INGEST_URL_VAR] = 'postgres://ingest-fake-host/app_db';
+
+    const appDb = db();
+    const ingestDbHandle = ingestDb();
+
+    expect(appDb).not.toBe(ingestDbHandle);
+    expect(db()).toBe(appDb);
+    expect(ingestDb()).toBe(ingestDbHandle);
+  });
+
+  it('wraps the same pool getPool(envVar) would return, not a second connection', () => {
+    process.env[APP_URL_VAR] = 'postgres://app-fake-host/db';
+
+    db();
+
+    // db() must reuse getPool's cached pool, not open its own: exactly one pool should exist.
+    expect(globalThis.__askPgPools?.size).toBe(1);
+    expect(globalThis.__askPgPools?.get(APP_URL_VAR)).toBe(getPool(APP_URL_VAR));
   });
 });
