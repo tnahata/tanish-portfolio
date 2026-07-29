@@ -1,58 +1,7 @@
 import { estimateTokens } from './tokens';
 
-/**
- * Thin client wrapper around OpenAI's embeddings API.
- *
- * Contract verified against developers.openai.com (Embeddings guide, API Reference, Error
- * codes, Rate limits) on 2026-07-28, not written from memory:
- *   - Endpoint: POST https://api.openai.com/v1/embeddings, `Authorization: Bearer <key>`.
- *   - Request: `input` (string, array of strings, or token arrays; max 2,048 items in the
- *     array, 8,192 tokens per individual input, 300,000 tokens summed across every input in
- *     one request), `model`, `dimensions` (only `text-embedding-3-small` and
- *     `text-embedding-3-large` accept it), `encoding_format` (`"float"` | `"base64"`,
- *     defaults to `"float"`; sent explicitly here so a future default change can't silently
- *     switch the response shape this module parses).
- *   - Response: `{ object: "list", data: [{ object: "embedding", embedding, index }], model,
- *     usage: { prompt_tokens, total_tokens } }`.
- *   - Errors: 401 (bad key) and 403 (unsupported region) are permanent; 429 (rate limit) and
- *     500/503 (server-side) are documented as transient and worth retrying with exponential
- *     backoff, which is OpenAI's own stated recommendation, not an assumption carried over
- *     from the Voyage client. 502/504 are kept in the retryable set as conventional transient
- *     gateway errors even though the fetched docs only named 500 and 503 by number. The exact
- *     JSON shape of `error` (`message`/`type`/`param`/`code`) was not shown verbatim in the
- *     fetched page text, so `describeErrorBody` below parses defensively (`message` if
- *     present, else the raw body) rather than asserting a shape the docs didn't confirm.
- *
- * Model and dimension choice: `text-embedding-3-large`, called with `dimensions: 1024`.
- *   - 1024 keeps `db/schema.sql`'s existing `vector(1024)` column: no migration, and there is
- *     nothing to migrate yet since the index is empty.
- *   - Truncated 3-large outperforms 3-small at 3-small's own native size. OpenAI's own
- *     documentation states a 3-large embedding shortened to 256 dimensions still outperforms
- *     an unshortened `text-embedding-ada-002` embedding at 1536; 1024 sits well above that
- *     256-dimension floor, so 3-large truncated to 1024 is expected to beat 3-small's native
- *     1536 by the same logic, not just meet it.
- *   - Cost is irrelevant at this corpus size (~47 chunks): the price difference between models
- *     at that volume is a fraction of a cent either way, so it does not weigh against quality.
- *   - Quality matters specifically because every corpus document is about the same person
- *     (Tanish). The crowded middle band between "answers the question" and "topically related
- *     but does not answer" is exactly what `T_STRONG` (see docs/ask-agent/04-retrieval-grounding.md)
- *     has to separate, and that separation is harder with a weaker embedding space.
- *
- * `input_type` no longer exists as a concept: OpenAI's embeddings endpoint has no
- * document-versus-query request parameter, unlike Voyage's `input_type: "document" | "query"`.
- * That parameter was the entire technical reason `embedDocuments` and `embedQuery` were two
- * functions instead of one: `input_type` changed what got prepended to the text server-side,
- * and swapping the two silently degraded retrieval with no error. With OpenAI, both functions
- * now make the exact same request shape; only the calling context (batch of chunks at ingest
- * time, versus one string at query time) differs. Both names are kept anyway, deliberately not
- * collapsed into one: Phase 2 call sites (`askOnce()`, `scripts/ingest.ts`) read as "embed this
- * for indexing" versus "embed this for search" regardless of what the vendor's API happens to
- * need this year, and collapsing them now would make a future vendor swap that reintroduces an
- * `input_type`-shaped parameter a breaking rename instead of a body-only change.
- *
- * Only this module builds the OpenAI request body; `db/schema.sql`'s `vector(1024)` and
- * `corpus_meta` both depend on `EMBED_MODEL`/`EMBED_DIMENSIONS` having exactly one definition.
- */
+/** Thin client wrapper around OpenAI's embeddings API. Only this module calls fetch for
+ *  embeddings or defines EMBED_MODEL/EMBED_DIMENSIONS. See docs/ask-agent/02-ingest.md#embedding-provider. */
 
 const OPENAI_API_KEY_ENV = 'OPENAI_API_KEY';
 const OPENAI_EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings';
@@ -61,11 +10,8 @@ const OPENAI_EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings';
 export const EMBED_MODEL = 'text-embedding-3-large';
 export const EMBED_DIMENSIONS = 1024;
 
-/**
- * Sent explicitly on every request rather than relying on the documented default, so a future
- * change to OpenAI's default `encoding_format` can't silently switch this module from parsing
- * `embedding: number[]` to parsing a base64 string it was never written to handle.
- */
+/** Sent explicitly rather than relying on the documented default, so a future default change
+ *  can't silently switch this module from parsing floats to a base64 string it can't handle. */
 const ENCODING_FORMAT = 'float';
 
 /** OpenAI's documented per-request limits. Batches are split to stay under both. */
@@ -146,12 +92,8 @@ function backoffMs(attempt: number): number {
   return exponential + jitter;
 }
 
-/**
- * OpenAI's conventional error body is `{"error": {"message": "...", ...}}`, but the exact
- * shape was not shown verbatim in the fetched documentation text (see module doc above), so
- * this parses `message` defensively rather than asserting a shape confirmed only from memory.
- * Falls back to the raw body, truncated, if it isn't JSON or doesn't carry a `message` string.
- */
+/** OpenAI's error body is typically `{ error: { message } }`, but the shape isn't guaranteed,
+ *  so this reads `message` defensively and falls back to the raw body, truncated. */
 function describeErrorBody(bodyText: string): string {
   if (!bodyText) return '';
   try {
@@ -173,11 +115,8 @@ function assertDimension(embedding: number[]): void {
   }
 }
 
-/**
- * One OpenAI request, with retry on transient failures. Kept as the single place that calls
- * `fetch`, so the retry loop stays next to the request it protects rather than spread across
- * callers.
- */
+/** One OpenAI request, with retry on transient failures. The only place that calls `fetch`,
+ *  so the retry loop stays next to the request it protects. */
 async function callOpenAi(texts: string[]): Promise<OpenAiEmbeddingsResponse> {
   const apiKey = getApiKey();
   let lastFailure = '';
@@ -231,11 +170,8 @@ async function callOpenAi(texts: string[]): Promise<OpenAiEmbeddingsResponse> {
   );
 }
 
-/**
- * Splits `texts` into request-sized batches respecting OpenAI's documented per-request limits
- * (count and tokens), using this codebase's existing token estimate. Callers never think about
- * batching; they hand in the full list.
- */
+/** Splits `texts` into request-sized batches respecting OpenAI's per-request limits (count
+ *  and tokens). Callers hand in the full list and never think about batching. */
 function batchInputs(texts: string[]): string[][] {
   const batches: string[][] = [];
   let current: string[] = [];
@@ -275,9 +211,8 @@ export async function embedDocuments(texts: string[]): Promise<EmbedBatchResult>
     const response = await callOpenAi(batch);
     tokensUsed += response.usage.total_tokens;
 
-    // OpenAI returns `index` per item, same as Voyage did; sort defensively rather than
-    // assume response order matches request order. Neither vendor's docs guarantee order, so
-    // this is not a Voyage-specific caution carried over out of habit.
+    // Response order isn't guaranteed to match request order; sort by index so a chunk never
+    // gets attached to the wrong vector, which nothing downstream would otherwise catch.
     const sorted = [...response.data].sort((a, b) => a.index - b.index);
     for (const item of sorted) {
       assertDimension(item.embedding);
@@ -288,11 +223,8 @@ export async function embedDocuments(texts: string[]): Promise<EmbedBatchResult>
   return { embeddings, tokensUsed };
 }
 
-/**
- * Embeds a single query string for search. Same request shape as `embedDocuments` now that
- * OpenAI has no document/query distinction (see module doc above); kept as a separate export
- * for call-site readability, not because the request differs.
- */
+/** Embeds a single query string for search. Same request shape as `embedDocuments`; kept as a
+ *  separate export for call-site readability, not because the request differs. */
 export async function embedQuery(text: string): Promise<EmbedQueryResult> {
   const response = await callOpenAi([text]);
   const [datum] = response.data;

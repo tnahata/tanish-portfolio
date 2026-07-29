@@ -8,17 +8,8 @@ import {
   embedQuery,
 } from '../../lib/ask/embed';
 
-/**
- * Behavioural tests for the OpenAI embeddings client, with `fetch` mocked. Nothing here makes a
- * real network call: every test either traps `fetch` with a `vi.fn()` (asserting call count and
- * request bodies against that mock, not against a real API) or, for the missing-key case, never
- * reaches `fetch` at all and asserts exactly that.
- *
- * Retry tests use fake timers so a test that exercises the backoff loop does not actually sleep
- * in wall-clock time; `vi.advanceTimersByTimeAsync` is used rather than `advanceTimersByTime`
- * because the code under test awaits its own `setTimeout`-based `sleep`, which needs the async
- * variant to let that pending promise resolve before the test's own `await` continues.
- */
+/** Behavioural tests for the OpenAI embeddings client, `fetch` mocked throughout. Retry tests
+ *  use `vi.advanceTimersByTimeAsync`: the code under test awaits its own setTimeout-based sleep. */
 
 const API_KEY_VAR = 'OPENAI_API_KEY';
 const OPENAI_EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings';
@@ -144,18 +135,14 @@ describe('request shape', () => {
 describe('result ordering', () => {
   it('reorders a response returned out of index order back to input order', async () => {
     const texts = ['alpha', 'beta', 'gamma'];
-    // The API is documented to carry an `index` per item but never documented as guaranteeing
-    // response order matches request order; this response is deliberately shuffled to prove the
-    // client does not assume it.
+    // The API carries an `index` per item but never guarantees response order matches request order.
     const shuffled = successBody(texts, [2, 0, 1]);
     const fetchMock = vi.fn().mockResolvedValue(fakeResponse({ ok: true, status: 200, jsonBody: shuffled }));
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await embedDocuments(texts);
 
-    // vectorFor(i) tags each embedding's first element with its logical index; after reordering,
-    // embeddings[0] must carry tag 0 (matching 'alpha'), not whatever the response happened to
-    // list first.
+    // vectorFor(i) tags each embedding's first element with its logical index.
     expect(result.embeddings[0][0]).toBe(0);
     expect(result.embeddings[1][0]).toBe(1);
     expect(result.embeddings[2][0]).toBe(2);
@@ -211,9 +198,7 @@ describe('batching at OpenAI real limits', () => {
   });
 
   it('splits a batch that stays under the count limit but exceeds the 300,000-token budget', async () => {
-    // estimateTokens ~= ceil(length / 4). Two 800,000-char texts (~200,000 tokens each) fit
-    // individually but not together under the 300,000-token-per-request ceiling, so the second
-    // must start a new batch even though only two items are involved.
+    // Two ~200k-token texts fit individually but not together under the 300k-token ceiling.
     const texts = [`a${'x'.repeat(799_999)}`, `b${'y'.repeat(799_999)}`];
     const fetchMock = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
       const parsed = JSON.parse(init.body as string) as { input: string[] };
