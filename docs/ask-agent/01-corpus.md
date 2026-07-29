@@ -1,4 +1,4 @@
-# 01 — Corpus
+# 01: Corpus
 
 ← [Index](README.md) · Prev: [00 Overview](00-overview.md) · Next: [02 Ingest](02-ingest.md)
 
@@ -12,6 +12,10 @@
 | `route: null` on files with no page | A citation to the case study page would look precise and be wrong |
 | Citations link to a route, never a fragment | Case study pages carry no section `id` attributes |
 | No automated drift check | Hashing source TSX fires on cosmetic SVG changes, so it gets bypassed |
+| The current resume is the source of truth for facts | Facts change between drafts; one document has to win |
+| ESMON's disclosure boundary is a client-relationship judgment, not an employer clearance | It is an independent commissioned project, not employer work |
+| Resume content counts as already public | What let the disclosure files widen beyond the case study pages |
+| Site says Discovery Agent, corpus says Noiseless; route and `id` unchanged | The live page is still at `/projects/discovery-agent`; citations must resolve |
 
 ---
 
@@ -45,10 +49,57 @@ Fourteen authored files plus every blog post.
 | `disclosure-esmon.md` | ESMON engineering detail cleared for public disclosure | private repo |
 | `disclosure-discovery-agent.md` | Same, for Noiseless | private repo |
 | `agent-boundaries.md` | What the agent will and will not answer, what is collected, how to reach Tanish | new |
-| `faq.md` | Opportunities, work authorization, remote preference, what he is looking for | new |
+| `faq.md` | What he is looking for, education, work authorisation, location and remote, availability, compensation, how to start a conversation | new |
 
 **Not in v1:** opinions (`/opinions` is a placeholder), Claude Code practice (route exists locally
 but is unshipped), repository source, private notes, the resume PDF.
+
+## Facts and disclosure boundaries
+
+**The current resume is the source of truth for facts.** Job titles are Full Stack Engineer,
+Full Stack Engineer II, and Full Stack Engineer Intern; he is based in San Francisco. Where a
+project file, `identity.md`, `experience-fedex.md`, or a live page disagreed with the resume, the
+corpus was reconciled to match the resume rather than the page, on the reasoning that a document
+someone submits under his name for a specific application is the most deliberate, most recently
+reviewed statement of these facts. `components/Experience.tsx` on the live site still renders
+"Software Engineer" / "Software Engineer II" rather than "Full Stack Engineer" / "Full Stack
+Engineer II"; that gap is the corpus-drift risk this decision creates, tracked in
+[13 Risks](13-risks.md), not something this ingest pipeline reconciles automatically.
+
+**ESMON is an independent commissioned project, not employer work.** Its disclosure boundary
+(`disclosure-esmon.md`) is therefore a judgment Tanish made himself about a client relationship,
+not the output of an employer clearance process. Vendor identity, binary format specifications,
+and commercial terms stay out regardless of how the rest of the file widens.
+
+**Resume content counts as already public.** That is what allowed `disclosure-esmon.md` and
+`disclosure-discovery-agent.md` to widen beyond what the case study pages themselves say: a fact
+already sitting on a document handed out under his own name is not a new disclosure when it also
+appears in a corpus file, even if the case study page abstracted it away.
+
+**The site calls this project Discovery Agent; the corpus calls it Noiseless.**
+`project-discovery-agent.md` and `disclosure-discovery-agent.md` both carry `title: Noiseless`,
+while `route: /projects/discovery-agent` and the frontmatter `id: project-discovery-agent` are
+deliberately left unchanged. The live page is still served at `/projects/discovery-agent`, and a
+citation the agent emits has to resolve to a real route, so renaming the route or the slug to
+match the corpus's name would break every existing and future citation to that project. Renaming
+the site itself is explicitly out of scope for this work. This is a known, permanent naming
+inconsistency between what a visitor reads on the page and what the agent calls the same project
+in conversation, not an oversight to be cleaned up later. Tracked in [13 Risks](13-risks.md).
+
+**`faq.md` and `identity.md` after the corpus audit.** `CORPUS-AUDIT.md` (in this directory) found
+that work authorisation, location, availability, compensation, and education were each stated in
+exactly one document, `faq.md`, which meant a recruiter question about any of them would score
+`weak` and refuse despite the corpus holding the answer, since [04 Retrieval and
+grounding](04-retrieval-grounding.md) requires two distinct corroborating documents for `strong`.
+`identity.md` gained a brief "Current situation" section afterward, restating (not merely pointing
+at) two of those facts, location and education, so those two now have real two-document
+corroboration. Work authorisation, availability, and compensation still do not: `identity.md`'s
+own "What he is looking for" section and its "Current situation" section both only point at the
+FAQ for those three ("are covered in the FAQ", "are answered in the FAQ") rather than restating
+the fact itself, and a pointer sentence is not a second statement of the answer even though it may
+share enough vocabulary to pass a naive corroboration check. That gap is carried as an open risk
+in [13 Risks](13-risks.md), including whether `agent-boundaries.md`'s mention of compensation as a
+boundary happens to corroborate it for unrelated reasons.
 
 ## Frontmatter
 

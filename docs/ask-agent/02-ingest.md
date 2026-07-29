@@ -1,4 +1,4 @@
-# 02 — Ingest and embedding lifecycle
+# 02: Ingest and embedding lifecycle
 
 ← [Index](README.md) · Prev: [01 Corpus](01-corpus.md) · Next: [03 Data model](03-data-model.md)
 
@@ -11,6 +11,7 @@
 | Deletion sweep scoped to `source = 'file'` | Published gap answers are runtime rows and must survive ingest |
 | Model change forces `--force` re-embed and a threshold re-tune | Thresholds are calibrated to one embedding space |
 | Ingest runs manually and in CI, not in `next build` | Content changes are not deploy-shaped |
+| Ingest refuses to run against an empty desired corpus | `x <> all('{}')` is vacuously true; an empty desired set would wipe the whole index |
 
 ---
 
@@ -59,6 +60,17 @@ delete-everything.
 published gap answers written at runtime. Scoping the sweep to `source = 'file'` leaves runtime
 rows alone automatically. A delete-everything rebuild would wipe published answers and require
 reading them back out of `gap_questions` to restore them.
+
+**Ingest refuses to run against an empty desired corpus.** In Postgres, `slug <> all($1::text[])`
+with an empty `$1` is vacuously true for every row: the `all` quantifier over an empty set has
+nothing to fail the comparison against, so `sweepDeletedDocuments` would match and delete every
+file-sourced document, cascading to every chunk, and commit before anyone could notice. This is
+reachable from an ordinary mistake, not just a hypothetical: `loadCorpus` (`lib/ask/corpus.ts`)
+returns `[]` silently when `content/corpus` does not exist, so running ingest from the wrong
+working directory, against a bad CI checkout, or after a renamed corpus directory is enough to
+trigger it. `reconcileCorpus` (`scripts/ingest.ts`) checks `corpus.length === 0` and throws before
+`fetchExistingState` reads a single row, before any Voyage call, and before the write transaction
+opens; there is no flag that bypasses this check.
 
 **Model change is the one case that needs a forced full re-embed.** `npm run ingest --force`
 re-embeds every chunk and rewrites `corpus_meta`. Until it runs, the query path 503s on the

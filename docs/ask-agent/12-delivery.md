@@ -1,4 +1,4 @@
-# 12 — Phases, effort, environment variables
+# 12: Phases, effort, environment variables
 
 ← [Index](README.md) · Prev: [11 Evaluation](11-evaluation.md) · Next: [13 Risks](13-risks.md)
 
@@ -20,7 +20,7 @@ Ordered so that nothing verifies code that does not exist yet.
 3. **Route, streaming, history.** AI SDK data parts, `/api/ask`, turn logging with cost, last-3
    history, environment guard. *Verify:* part ordering; a client disconnect aborts upstream and
    still writes a turn; a follow-up question resolves against the previous turn.
-   → [05 Runtime](05-runtime.md) — note the history contradiction flagged there
+   → [05 Runtime](05-runtime.md) (note the history contradiction flagged there)
 4. **FAB UI.** `useChat`, trace toggle, citations, refusal block, mobile sheet.
    *Verify:* Playwright over answer, weak-refusal, and rate-limit paths.
    → [10 UI](10-ui.md)
@@ -59,34 +59,80 @@ The long pole is writing, not building.
 
 ## Build status
 
-As of 2026-07-29, against Phase 0 and Phase 1 above.
+As of 2026-07-28, against Phase 0 and Phase 1 above. Verified against the filesystem, not
+inferred from what was planned.
 
 | | Status |
 |---|---|
 | `db/schema.sql` (ten tables, idempotent) | Landed |
+| `db/roles.sql` (three roles, exact per-table grant matrix, session-GUC password mechanism) | Landed |
 | `lib/ask/types.ts`, `lib/ask/tokens.ts`, `lib/ask/corpus.ts`, `lib/ask/chunk.ts` | Landed |
-| All fourteen files in `content/corpus/` | Landed |
-| `lib/ask/db.ts` (pg pool, transaction helper) | Not landed |
-| vitest config, `npm test` script, tests | Not landed |
-| Voyage embedding client | Not landed |
-| Ingest reconcile script | Not landed |
+| `lib/ask/db.ts` (pg pool keyed per connection string, transaction helper for `ask_app` and `ask_ingest`) | Landed |
+| `lib/ask/embed.ts` (Voyage client: batching, retry on 429/5xx, dimension assertion) | Landed |
+| `scripts/ingest.ts` (reconcile, empty-corpus guard, schema/grant preflight checks) | Landed |
+| `scripts/db-setup.ts`, `scripts/db-roles.ts`, `scripts/db-shared.ts`, `scripts/load-env.ts` | Landed |
+| All fourteen files in `content/corpus/`, both disclosure files carrying a real `clearedOn` date | Landed |
+| One blog post in `content/blog/`, picked up by `loadCorpus` automatically | Landed |
+| vitest config, `npm test` script, tests (74 passing, across 8 files under `tests/ask/`) | Landed |
+| `askOnce()`, retrieval and grounding | Not landed |
+| `/api/ask` route, streaming, history | Not landed |
+| FAB UI, chat panel | Not landed |
+| Google OAuth gate, `/api/ask/identify` | Not landed |
+| BotID wiring, rate limiting, spend reservation (the tables exist in `db/schema.sql`; no code reads or writes them yet) | Not landed |
+| Gap queue endpoints, Resend integration, `/asked` | Not landed |
+| Eval harness (`npm run eval` does not exist in `package.json`) | Not landed |
 
-Ingest is blocked on the user, not on code: both disclosure files (`disclosure-esmon.md`,
-`disclosure-discovery-agent.md`) carry `clearedOn: TODO`, and `lib/ask/corpus.ts` throws on a
-disclosure file with no clearance date, so it refuses them until a real date replaces the
-placeholder. Running ingest for real also needs `DATABASE_URL` (Neon) and `VOYAGE_API_KEY` in the
-environment, neither of which is set yet.
+Whether ingest has actually been run against a live Neon database is not verifiable from the
+repository alone: nothing here records a past run. The pipeline is code-complete and covered by 74
+unit tests, all against mocked database and Voyage clients, no real connection or API call in the
+suite. The commit that introduced the role split says this plainly and it still holds: "the role
+ordering logic is reasoned against documented Postgres semantics, not executed: worth one dry run
+on a disposable branch before trusting it."
+
+## Setup sequence
+
+The order this project actually runs in, and why. See [03 Data model](03-data-model.md) for the
+full reasoning behind the schema-before-roles preference.
+
+1. Set `DATABASE_ADMIN_URL` (the Neon owner connection string, from the Neon project dashboard) in
+   the local environment.
+2. `npm run db:setup`, applying `db/schema.sql`. Creates the ten tables; idempotent, safe to
+   re-run any time the schema changes.
+3. `npm run db:roles`, applying `db/roles.sql`. Creates (or converges) `ask_ingest` and `ask_app`,
+   sets their passwords, and applies the grant matrix. Because the tables already exist from step
+   2, the exact per-table matrix lands directly on this run rather than the broader
+   default-privilege baseline a roles-first run would leave in place. Prints the two ready-to-paste
+   connection strings.
+4. Copy the printed `DATABASE_INGEST_URL` and `DATABASE_URL` values into the local environment.
+5. Set `VOYAGE_API_KEY`.
+6. `npm run ingest`, to embed and load the corpus (fourteen files plus every blog post) into the
+   corpus tables.
+7. `npm test`, to confirm the 74 unit tests still pass. These are mocked and need no live database,
+   so they can run at any point in this sequence, including before step 1.
+
+Both apply orders for steps 2 and 3 are safe to run in practice (see `db/roles.sql`'s own "Apply
+order" section), but schema-first is the one without an intermediate window where `ask_app` holds
+broader grants than intended.
 
 ## Environment variables
 
+**Implemented today**, present in `.env.example` and read by landed code:
+
 | Variable | Purpose |
 |---|---|
+| `NEXT_PUBLIC_BASE_URL` | Base URL for building UTM-tagged links (pre-dates the ask agent) |
 | `DATABASE_URL` | Neon Postgres, as the least-privilege `ask_app` role. The running app's connection |
 | `DATABASE_INGEST_URL` | Neon Postgres, as the least-privilege `ask_ingest` role. Read only by `npm run ingest` |
 | `DATABASE_ADMIN_URL` | Neon Postgres, as the owner role. Read only by `npm run db:setup` and `npm run db:roles`; never by the app or by ingest |
 | `ASK_INGEST_PASSWORD` / `ASK_APP_PASSWORD` | optional; pins the password `npm run db:roles` sets for each role, for a reproducible rerun. Unset generates a fresh one each run |
+| `VOYAGE_API_KEY` | embeddings, read by `lib/ask/embed.ts` |
+
+**Planned, for phases not yet built.** Named here so the shape is decided in advance; none of
+these are in `.env.example` yet, and no landed code reads them.
+
+| Variable | Purpose |
+|---|---|
 | `ANTHROPIC_API_KEY` | generation |
-| `VOYAGE_API_KEY` | embeddings |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Sign in with Google; also the `aud` checked server-side |
 | `RESEND_API_KEY` | gap notification, answer delivery, weekly digest |
 | `EMAIL_FROM` | verified sender, e.g. `ask@tanishnahata.com` |
@@ -97,18 +143,35 @@ environment, neither of which is set yet.
 | `APEX_HOST` | asserted against request `Host` in production |
 
 Three connection strings, three roles, one database: see [03 Data model](03-data-model.md) for the
-grant matrix and why the split exists. `npm run db:roles` (creates `ask_ingest` and `ask_app`,
-applies their grants) and `npm run db:setup` (applies `db/schema.sql`) are separate commands that
-can run in either order; `npm run db:roles` prints the `DATABASE_URL` and `DATABASE_INGEST_URL`
-values to paste in, derived from `DATABASE_ADMIN_URL`, rather than requiring them to be assembled
-by hand.
+grant matrix, the vendor comparison against Supabase, and why Neon Auth was rejected for v1.
 
-The Next.js app gets these automatically: `next dev` and `next build` load local configuration
-files on their own. Standalone scripts do not get that for free. `npm run ingest`, `npm run
-db:setup`, `npm run db:roles`, and the eval harness once it exists, call a shared loader
-(`scripts/load-env.ts`) as the first thing they do, which reads local configuration the same way
-`next dev` does, before any of the variables above are read. Skipping that call is exactly the bug
-where a script reports a variable as unset even though it is correctly set on disk, because
+The Next.js app gets the implemented variables automatically: `next dev` and `next build` load
+local configuration files on their own. Standalone scripts do not get that for free. `npm run
+ingest`, `npm run db:setup`, `npm run db:roles`, and the eval harness once it exists, call a shared
+loader (`scripts/load-env.ts`) as the first thing they do, which reads local configuration the same
+way `next dev` does, before any of the variables above are read. Skipping that call is exactly the
+bug where a script reports a variable as unset even though it is correctly set on disk, because
 nothing ever loaded the file into `process.env`.
 
 Resend needs DNS verification for the sending domain, which has propagation latency: do it early.
+
+## Process and tooling safety
+
+**Implementation is delegated to subagents on Sonnet, not done inline.** Recorded in `AGENTS.md`
+as a standing instruction: a subagent reads the relevant spec file in `docs/ask-agent/` plus every
+source file it will touch before writing code, and reports actual command output (test runs, type
+checks, script results) rather than a claim of success without it.
+
+**A PreToolUse hook denies any tool call referencing a local dotenv file**
+(`.claude/hooks/block-env-local.sh`, wired in `.claude/settings.json`), with permission `deny`
+rules on `Read` for the same filenames as a second, independent layer that does not depend on the
+hook script path resolving. Local dotenv files hold live credentials; nothing an assistant does
+needs their values, since code reads them from `process.env` at runtime and a missing variable
+already fails loudly with its own message (see `AskDbConfigError` in `lib/ask/db.ts` and
+`AskEmbedConfigError` in `lib/ask/embed.ts`). The check is deliberately blunt: it denies on any
+mention of the dotenv prefix, after scrubbing the phrases that legitimately contain it
+(`process.env`, `import.meta.env`, and the committed `.env.example` template), rather than
+matching one exact filename, since a single literal match is defeated by a glob or a bare name.
+**The scrub list is exactly as load-bearing as the match itself:** an early version of this hook
+denied every command containing `process.env`, which is how the code reads these variables and
+appears throughout a Next.js repo, and it blocked its own commit.

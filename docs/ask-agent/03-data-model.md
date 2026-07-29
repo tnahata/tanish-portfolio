@@ -1,4 +1,4 @@
-# 03 — Data model
+# 03: Data model
 
 ← [Index](README.md) · Prev: [02 Ingest](02-ingest.md) · Next: [04 Retrieval and grounding](04-retrieval-grounding.md)
 
@@ -15,11 +15,57 @@
 | `users.email` not unique | Addresses get reassigned; `google_sub` is the key |
 | Nonces, rate counters, and reservations are tables | Removing Redis removes a vendor and an outage mode |
 | Three roles (`owner`, `ask_ingest`, `ask_app`), no `alter default privileges` on the exact grant matrix | A prompt-injection write must stop at "insert", never reach "rewrite or delete the corpus" |
+| Neon kept over Supabase | Free-tier pause fits sporadic traffic badly; branching is Pro-only; direct connections are IPv6, which Vercel does not support |
+| Neon Auth evaluated and rejected for v1 | Beta, targets routes not generation, and would weld the project to Neon |
+| `db:roles` and `db:setup` are separate commands | They need different credentials; ingest never holds DDL rights |
+| Schema applied before roles | Roles-first leaves `ask_app` over-granted until a second run tightens it |
+| Pool cache keyed per connection string | A single cached pool would let whichever connection string resolved first win |
+| Role passwords routed through a session GUC | `alter role ... password` takes a literal, not a bind parameter |
 
 ---
 
 Postgres (Neon) with `pgvector`. Ten tables in three groups: corpus, identity and traffic, and
-operational state. There is no second datastore.
+operational state. There is no second datastore: one Postgres holds the vector index, the
+application data, and authentication. The full vendor list for this project is Neon, Anthropic,
+Voyage, Resend, Google, and Vercel.
+
+## Why Neon, not Supabase
+
+Both are Postgres-with-pgvector-as-a-service, so the comparison is about operational shape, not
+capability.
+
+- **Supabase's free tier pauses a project after a week of inactivity.** This site's traffic is
+  sporadic by design (a portfolio agent, not a product with daily active users), so the realistic
+  failure mode on Supabase is a dead agent that has to wake from a cold pause, not merely a slow
+  one. Neon's scale-to-zero is a latency cost on the first request after idle; Supabase's pause is
+  an availability cost until something manually resumes the project.
+- **Supabase branching is Pro-only.** [11 Evaluation](11-evaluation.md)'s harness assumes a branch
+  database to run against, which a free-tier Supabase project cannot provide.
+- **Supabase's direct connections are IPv6.** Vercel's serverless functions do not support IPv6
+  egress, so Supavisor (Supabase's connection pooler) would be mandatory rather than optional,
+  adding a component this design has no equivalent need for on Neon.
+- **The counter-argument was considered, not ignored.** Noiseless already runs on Supabase, and
+  consolidating vendors has real value: fewer dashboards, fewer sets of credentials, one less
+  relationship to maintain. It was rejected because the failure mode above (a paused, dead agent
+  on a public portfolio site) outweighs that value.
+
+## Why not Neon Auth (yet)
+
+Neon Auth was evaluated for identity and rejected for v1.
+
+- **It is currently Managed Better Auth, in beta, targeting GA.** Neon has already changed auth
+  stacks once (from its previous offering), which is a second data point on how settled this
+  particular piece of Neon's platform is, not just an appeal to it being new.
+- **The gate in this design is on generation, not on routes** (see [07 Identity and the
+  gate](07-identity-gate.md)). A route-guard SDK is built for protecting pages and endpoints; this
+  agent's identity requirement sits one level deeper, inside a single streaming handler, where a
+  route-guard SDK buys little over checking a session value directly.
+- **The hand-rolled flow is roughly 120 lines**: nonce issuance, a Google ID token verification
+  call, and a session upsert. That is not enough surface to justify a dependency.
+- **Adopting it would re-add the auth vendor this design deliberately removed** (Google's ID token
+  flow needs no separate auth vendor at all, see [07 Identity and the gate](07-identity-gate.md)),
+  and would weld the project to Neon at a moment when switching Postgres providers is a one-line
+  connection-string change. Revisit at GA, or if a second identity provider is ever wanted.
 
 ## Corpus tables
 
@@ -235,3 +281,43 @@ something is broken but because the exact grant matrix is table-by-table by desi
 against it fails with a plain Postgres permission-denied error in the meantime.
 `scripts/ingest.ts`'s preflight check turns exactly that error, on any of the three corpus tables,
 into a message naming the fix rather than a bare "permission denied for table".
+
+## Connections, credentials, and apply order
+
+**`npm run db:roles` and `npm run db:setup` are separate commands because they need different
+credentials from each other in spirit, even though both read `DATABASE_ADMIN_URL` today: one
+creates roles and grants, the other creates tables, and keeping them as two commands is what keeps
+`npm run ingest` from ever needing DDL rights to do its job.** Auto-creating the corpus tables from
+inside `scripts/ingest.ts` itself was considered and rejected: `create table if not exists` skips
+silently when a table already exists but its definition has drifted from what `db/schema.sql` now
+declares, so it works right up until the first schema change and then fails invisibly, with ingest
+writing against a stale table shape and no error to say so.
+
+**Schema before roles is the order this project runs in practice, though `db/roles.sql` is written
+to tolerate either.** `db/roles.sql` leans on `alter default privileges` as a baseline specifically
+so it can run first, against a database with no tables yet (see "Apply order" in `db/roles.sql`
+for the full reasoning). But that baseline is broader than the exact matrix this design wants:
+run roles first, and `ask_app` holds INSERT on `corpus_meta` (which should be SELECT-only) until
+`npm run db:roles` runs a second time after the tables exist. Running `npm run db:setup` first
+means the one time `db/roles.sql`'s per-table loop runs, every table already exists, so the exact
+matrix is applied directly with no intermediate over-broad window. See [12
+Delivery](12-delivery.md) for the exact command sequence this project uses.
+
+**The pool cache in `lib/ask/db.ts` is keyed per connection string, not a single global.** Before
+this module served both `ask_app` (`DATABASE_URL`) and `ask_ingest` (`DATABASE_INGEST_URL`), a
+single cached `Pool` was enough. Once two roles share the module, a single cache would let
+whichever connection string resolved first win: every later call to `getPool` in that process
+would silently hand back a pool connected as the wrong role, which would make the entire role
+split decorative rather than enforced. The cache is a `Map<string, Pool>` on `globalThis`, keyed
+by env var name, so `ask_app` and `ask_ingest` each keep their own pool, and the map still survives
+Next.js dev-mode hot reload the same way the single-pool version did.
+
+**Role passwords go through a session GUC, not a bind parameter or string concatenation.**
+`alter role ... password` takes the password as a literal grammar token (an `Sconst`), not as an
+expression, so there is no `$1` position for the driver to bind it into the way an ordinary `where
+col = $1` clause would allow. `scripts/db-roles.ts` sets `ask.ingest_password` and
+`ask.app_password` with a parameterized `select set_config($1, $2, false)` call before running
+`db/roles.sql`, which then reads them back with `current_setting` and quotes them with
+`format(..., %L)` before splicing them into a dynamic `alter role` statement. The password value
+never appears in SQL text this script builds by hand, which is what makes the file safe to commit
+and the mechanism safe to reason about as not injectable.

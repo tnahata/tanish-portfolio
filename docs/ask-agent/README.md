@@ -1,4 +1,4 @@
-# Ask Agent — Spec Index
+# Ask Agent: Spec Index
 
 A grounded chat agent for tanishnahata.com. Answers only from a curated corpus, shows its
 retrieval work live, refuses out-of-scope questions with a visible reason, and turns the
@@ -82,3 +82,35 @@ row looks wrong.
 | Labels assigned in two passes, no strata quotas up front | [11](11-evaluation.md) | settled |
 | No hidden holdout | [11](11-evaluation.md) | deliberate tradeoff |
 | Launch gated on false-answer rate 0 and verbatim fidelity 100% | [11](11-evaluation.md) | settled |
+| Neon kept over Supabase: free-tier pause, Pro-only branching, IPv6-only direct connections | [03](03-data-model.md) | settled |
+| Neon Auth evaluated and rejected for v1 | [03](03-data-model.md) | settled, revisit at GA |
+| `db:setup` and `db:roles` are separate commands, since they need different credentials; auto-creating tables from ingest was rejected | [03](03-data-model.md) | settled |
+| Schema applied before roles, to avoid a temporary over-broad grant window | [03](03-data-model.md), [12](12-delivery.md) | settled |
+| Pool cache keyed per connection string, not a single global | [03](03-data-model.md) | settled |
+| Role passwords set through a session GUC, never bound as a literal or concatenated | [03](03-data-model.md) | settled |
+| Ingest refuses to run against an empty corpus | [02](02-ingest.md) | settled |
+| Current resume is the source of truth for facts; job titles are Full Stack Engineer / II / Intern, based in San Francisco | [01](01-corpus.md) | settled |
+| ESMON's disclosure boundary is Tanish's own judgment about a client relationship, not an employer clearance process | [01](01-corpus.md) | settled |
+| Resume content counts as already public, which is what let the disclosure files widen beyond the case study pages | [01](01-corpus.md) | settled |
+| Site calls the project Discovery Agent; corpus calls it Noiseless; route and frontmatter `id` deliberately unchanged | [01](01-corpus.md), [13](13-risks.md) | known inconsistency |
+| Starter chips are ESMON, Noiseless, and personal; no HybridFit chip | [10](10-ui.md) | settled |
+| `faq.md` covers work authorisation, location, availability, compensation, and education; `verbatimOnly` | [01](01-corpus.md) | settled |
+| `identity.md` gained a "Current situation" section to corroborate `faq.md`, without duplicating its sentences | [01](01-corpus.md), [13](13-risks.md) | partial fix, accepted risk |
+| Ask agent implementation delegated to subagents on Sonnet, which read the spec and source before writing code | [12](12-delivery.md) | settled |
+| A PreToolUse hook denies any tool call referencing a local dotenv file, with permission deny rules as a second layer | [12](12-delivery.md) | settled |
+
+## Decision log: rejected alternatives
+
+Options considered and turned down, so they do not get proposed again. One line of reasoning each;
+full argument in the linked file.
+
+| Rejected | Why | Where |
+|---|---|---|
+| Supabase instead of Neon | Free tier pauses a project after a week of inactivity, which this site's sporadic traffic would hit routinely; branching is Pro-only and the eval harness assumes a branch database; direct connections are IPv6, which Vercel does not support, making Supavisor mandatory | [03](03-data-model.md) |
+| Consolidating on Supabase since Noiseless already runs there | The failure mode (a paused, dead agent) outweighs the value of one fewer vendor | [03](03-data-model.md) |
+| Neon Auth for identity | Currently Managed Better Auth, in beta, and Neon has already changed auth stacks once; the gate is on generation, not routes, so a route-guard SDK buys little against a roughly 120-line hand-rolled flow; adopting it re-adds the auth vendor this design removed and welds the project to Neon | [03](03-data-model.md) |
+| Auto-creating corpus tables from `npm run ingest` | `create table if not exists` skips silently when a table exists but differs, so it works until the first schema change and then fails invisibly | [03](03-data-model.md) |
+| `alter default privileges` alone for the exact grant matrix | Scoped to a schema and a creating role, not a named table list, so it cannot express the asymmetry between `ask_ingest` and `ask_app` | [03](03-data-model.md) |
+| Roles-first as the recommended apply order | The first pass has no tables to grant on, so it falls back to a broader default-privilege baseline that overgrants `ask_app` until a second run tightens it | [03](03-data-model.md), [12](12-delivery.md) |
+| Size-based chunking shortcut (short documents stay one chunk) | Merges unrelated facts into one embedding, which can sink a specific answer below the retrieval threshold, and over-returns on the verbatim path | [01](01-corpus.md) |
+| Delete-everything rebuild for ingest | Would wipe runtime-published gap answers and require reading them back out of `gap_questions` to restore them | [02](02-ingest.md) |
