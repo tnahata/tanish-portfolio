@@ -275,10 +275,10 @@ export default function NoiselessPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-24">
           {[
-            { metric: '3', label: 'Signal sources merged per user profile during onboarding' },
-            { metric: 'Daily', label: 'Scheduled discovery runs per user, adapted to timezone' },
-            { metric: 'Adaptive', label: 'Ranking sharpens with every like, dislike, and skip' },
-            { metric: 'Per-user', label: 'Isolated budgets, profiles, and learning histories' },
+            { metric: 'Minutes', label: 'Spent approving, instead of hours hunting for conversations worth joining.' },
+            { metric: 'Learns', label: 'Every like, dislike, and skip makes the next digest sharper than the last.' },
+            { metric: 'Capped', label: 'Daily and monthly spend limits per user, with cost visible the whole way.' },
+            { metric: 'Zero', label: 'Config to write. A Slack conversation builds the profile, no forms or keyword lists.' },
           ].map(({ metric, label }) => (
             <div key={label} className="p-6"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '4px' }}>
