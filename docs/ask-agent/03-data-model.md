@@ -14,6 +14,7 @@
 | `users` separate from `sessions` | Identity, not the cookie, is the principal |
 | `users.email` not unique | Addresses get reassigned; `google_sub` is the key |
 | Nonces, rate counters, and reservations are tables | Removing Redis removes a vendor and an outage mode |
+| Three roles (`owner`, `ask_ingest`, `ask_app`), no `alter default privileges` on the exact grant matrix | A prompt-injection write must stop at "insert", never reach "rewrite or delete the corpus" |
 
 ---
 
@@ -190,3 +191,47 @@ per-user rate limiting and cost attribution correct rather than per-browser.
 
 Separate `answer_token_used_at` and `publish_token_used_at` columns exist because one shared column
 means answering a question permanently blocks publishing it. See [09 Gap queue](09-gap-queue.md).
+
+## Access control: three roles, not one
+
+One database, but not one login. `owner` (Neon's existing role, `DATABASE_ADMIN_URL`) runs DDL and
+nothing else touches it. `ask_ingest` (`DATABASE_INGEST_URL`) is what `npm run ingest` connects as.
+`ask_app` (`DATABASE_URL`) is what the running app connects as. Full grant matrix, reasoning, and
+the exact SQL live in `db/roles.sql`; this is the summary.
+
+| | `corpus_meta`, `documents`, `chunks` | the other seven tables |
+|---|---|---|
+| `ask_ingest` | SELECT, INSERT, UPDATE, DELETE | nothing |
+| `ask_app` | SELECT everywhere; INSERT on `documents`/`chunks` only; never UPDATE, never DELETE | SELECT, INSERT, UPDATE, DELETE |
+
+**Why `ask_app` cannot UPDATE or DELETE a corpus row.** The corpus defines what the agent is
+allowed to know. If a path from prompt injection to a database write ever existed, its blast
+radius has to stop at "insert an asked-sourced row"; it must never reach "rewrite or delete what
+the agent already knows", because that would be corpus poisoning, not just a bad write. `ask_app`
+still needs INSERT on `documents` and `chunks` because publishing a gap answer happens at runtime
+and writes a `documents` row with `source = 'asked'`, embedded inline with no deploy (see
+[09 Gap queue](09-gap-queue.md)). INSERT-only keeps that path open while keeping every
+file-sourced row `ask_ingest` maintains immutable to the runtime.
+
+**Why `ask_ingest` has no access at all to the other seven tables.** Ingest reconciles corpus
+content read from disk against the corpus tables (see [02 Ingest](02-ingest.md)). It has no
+legitimate reason to read or write a `users` row, a `session`, or a `turn`, so it is not given the
+surface that would make it a target if it were ever compromised.
+
+**`db/roles.sql` deliberately does not use `alter default privileges` to express this matrix.**
+That mechanism is scoped to a schema and a creating role, not to a named list of tables, so it
+cannot reproduce the asymmetry above: a default broad enough to cover `ask_app`'s access to a
+future identity-shaped table would just as automatically apply to a future corpus-shaped table,
+handing `ask_app` UPDATE/DELETE on the exact thing this split exists to protect. `db/roles.sql`
+does still use `alter default privileges`, but only as a temporary, intentionally-broader baseline
+that makes a table usable the instant `npm run db:setup` creates it; the exact matrix above is
+applied by an explicit per-table pass that only touches tables that already exist. See
+"Apply order" in `db/roles.sql` for the two commands' full sequencing, and the practical
+consequence below.
+
+**Practical consequence: adding a table to `db/schema.sql` requires re-running `npm run
+db:roles`.** Until that command runs again, the new table has no explicit grant, not because
+something is broken but because the exact grant matrix is table-by-table by design. A query
+against it fails with a plain Postgres permission-denied error in the meantime.
+`scripts/ingest.ts`'s preflight check turns exactly that error, on any of the three corpus tables,
+into a message naming the fix rather than a bare "permission denied for table".

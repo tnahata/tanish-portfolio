@@ -9,7 +9,9 @@
     "lint": "eslint 'app/**/*.{ts,tsx}' 'components/**/*.{ts,tsx}' 'lib/**/*.{ts,tsx}'",
     "test": "vitest run",
     "test:watch": "vitest",
-    "ingest": "tsx scripts/ingest.ts"
+    "ingest": "tsx scripts/ingest.ts",
+    "db:setup": "tsx scripts/db-setup.ts",
+    "db:roles": "tsx scripts/db-roles.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.1",

@@ -93,9 +93,12 @@ function getApiKey(): string {
   const key = process.env[VOYAGE_API_KEY_ENV];
   if (!key) {
     throw new AskEmbedConfigError(
-      `Missing ${VOYAGE_API_KEY_ENV}. Set it in .env.local for local development, or in the ` +
-        'deployment environment (Vercel project settings, or CI secrets for the scheduled ' +
-        'ingest) before running `npm run ingest`. Never commit a real API key.'
+      `Missing ${VOYAGE_API_KEY_ENV}: it is not set in this process's environment. If you have ` +
+        'already set it in a local configuration file, note that standalone scripts load ' +
+        'configuration explicitly rather than picking it up automatically the way next dev ' +
+        'and next build do; confirm that loading step ran before this. For preview and ' +
+        'production, set it in the deployment environment (Vercel project settings, or CI ' +
+        'secrets for the scheduled ingest). Never commit a real API key.'
     );
   }
   return key;

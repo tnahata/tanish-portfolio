@@ -5,9 +5,12 @@ import type { AskQueryFn } from '../../lib/ask/db';
 import type { EmbedBatchResult } from '../../lib/ask/embed';
 import type { CorpusDocument } from '../../lib/ask/types';
 import {
+  assertSchemaExists,
   planDocumentChunks,
   reconcileCorpus,
   AskIngestEmptyCorpusError,
+  AskIngestMissingGrantError,
+  AskIngestSchemaMissingError,
   type ExistingChunkRef,
   type IngestRuntime,
 } from '../../scripts/ingest';
@@ -531,5 +534,102 @@ describe('reconcileCorpus: empty corpus guard', () => {
     expect(transactionCalls).toBe(0);
     expect(embed).not.toHaveBeenCalled();
     expect(runtime.documents.find((d) => d.slug === 'should-survive')).toBeDefined();
+  });
+});
+
+/**
+ * `assertSchemaExists` is the preflight the brief asked for directly: it is what turns a raw
+ * Postgres error (a missing relation, or a missing grant) into a message that names the fix,
+ * before `main` does anything else. Exercised here against a fake `AskQueryFn` that answers by
+ * pattern-matching the exact SQL text the function sends, the same style `createFakeRuntime`
+ * above uses, with no real database or Voyage call anywhere near it.
+ */
+describe('assertSchemaExists', () => {
+  interface FakeSchemaCheckOptions {
+    /** Row returned for the to_regclass/to_regtype probe. Defaults to "schema present". */
+    schemaRow?: { documents_reg: string | null; vector_reg: string | null };
+    /** Postgres error code to throw for `select 1 from <table> limit 0`, keyed by table name. */
+    tableErrorCodes?: Partial<Record<'corpus_meta' | 'documents' | 'chunks', string>>;
+  }
+
+  function makeSchemaCheckQuery(options: FakeSchemaCheckOptions): { query: AskQueryFn; calls: string[] } {
+    const calls: string[] = [];
+
+    const query = (async (text: string, _params: unknown[]) => {
+      const sql = text.replace(/\s+/g, ' ').trim();
+      calls.push(sql);
+
+      if (sql.startsWith("select to_regclass('public.documents')")) {
+        return makeResult([options.schemaRow ?? { documents_reg: 'documents', vector_reg: 'vector' }]);
+      }
+
+      const tableMatch = sql.match(/^select 1 from (\w+) limit 0$/);
+      if (tableMatch) {
+        const table = tableMatch[1] as 'corpus_meta' | 'documents' | 'chunks';
+        const code = options.tableErrorCodes?.[table];
+        if (code) {
+          const err = new Error(`simulated failure for ${table}`) as Error & { code: string };
+          err.code = code;
+          throw err;
+        }
+        return makeResult([]);
+      }
+
+      throw new Error(`fake schema-check query: unhandled SQL: ${sql}`);
+    }) as unknown as AskQueryFn;
+
+    return { query, calls };
+  }
+
+  it('resolves without throwing when the schema exists and every corpus table is reachable', async () => {
+    const { query, calls } = makeSchemaCheckQuery({});
+
+    await expect(assertSchemaExists(query)).resolves.toBeUndefined();
+    // The schema probe, then one reachability probe per corpus table.
+    expect(calls).toHaveLength(4);
+  });
+
+  it('throws AskIngestSchemaMissingError when public.documents does not resolve', async () => {
+    const { query, calls } = makeSchemaCheckQuery({
+      schemaRow: { documents_reg: null, vector_reg: 'vector' },
+    });
+
+    await expect(assertSchemaExists(query)).rejects.toThrow(AskIngestSchemaMissingError);
+    // Fails on the first round trip; never probes an individual corpus table afterward.
+    expect(calls).toHaveLength(1);
+  });
+
+  it('throws AskIngestSchemaMissingError when the vector type does not resolve', async () => {
+    const { query, calls } = makeSchemaCheckQuery({
+      schemaRow: { documents_reg: 'documents', vector_reg: null },
+    });
+
+    await expect(assertSchemaExists(query)).rejects.toThrow(AskIngestSchemaMissingError);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('throws AskIngestMissingGrantError naming the table when ask_ingest lacks a grant on it', async () => {
+    const { query } = makeSchemaCheckQuery({
+      tableErrorCodes: { chunks: '42501' },
+    });
+
+    await expect(assertSchemaExists(query)).rejects.toThrow(AskIngestMissingGrantError);
+    await expect(assertSchemaExists(query)).rejects.toThrow(/chunks/);
+  });
+
+  it('maps an undefined-table error on a corpus table back to AskIngestSchemaMissingError', async () => {
+    const { query } = makeSchemaCheckQuery({
+      tableErrorCodes: { corpus_meta: '42P01' },
+    });
+
+    await expect(assertSchemaExists(query)).rejects.toThrow(AskIngestSchemaMissingError);
+  });
+
+  it('does not swallow an unrelated error from a table probe', async () => {
+    const { query } = makeSchemaCheckQuery({
+      tableErrorCodes: { documents: '53300' }, // too_many_connections: not a grant or schema problem
+    });
+
+    await expect(assertSchemaExists(query)).rejects.toThrow(/simulated failure for documents/);
   });
 });

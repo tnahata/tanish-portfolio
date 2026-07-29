@@ -1,8 +1,21 @@
 import { chunkDocument, hashContent } from '../lib/ask/chunk';
 import { loadCorpus } from '../lib/ask/corpus';
-import { query, withTransaction, type AskQueryFn } from '../lib/ask/db';
+import { ingestQuery, ingestWithTransaction, type AskQueryFn } from '../lib/ask/db';
 import { embedDocuments, EMBED_MODEL, EMBED_DIMENSIONS, type EmbedBatchResult } from '../lib/ask/embed';
 import type { CorpusChunk, CorpusDocument, DocumentSource } from '../lib/ask/types';
+import { loadScriptEnv } from './load-env';
+
+/**
+ * Runs as the first statement after the imports above, before anything else in this module
+ * does real work. `tsx scripts/ingest.ts` is plain Node, not `next dev`/`next build`, so
+ * without this call `DATABASE_URL` and `VOYAGE_API_KEY` are undefined in this process
+ * regardless of what a developer has set locally: see the module doc on `loadScriptEnv` in
+ * ./load-env for why this placement is correct even though ES imports are hoisted above it.
+ * `lib/ask/db.ts` and `lib/ask/embed.ts` both confirmed to read `process.env` lazily inside
+ * functions, not at their own module top level, so running this after the import statements
+ * (but before `main()`) is sufficient.
+ */
+loadScriptEnv();
 
 /**
  * Ingest: reconciles the corpus tables to the desired state declared by
@@ -65,6 +78,102 @@ export class AskIngestEmptyCorpusError extends Error {
 function assertCorpusNotEmpty(corpus: CorpusDocument[]): void {
   if (corpus.length === 0) {
     throw new AskIngestEmptyCorpusError();
+  }
+}
+
+/**
+ * Thrown when the corpus tables or the `vector` extension are missing entirely: this is the
+ * failure the user actually hit, running `npm run ingest` against a database that had never had
+ * `npm run db:setup` applied to it. Without this check, the first thing to reach Postgres would
+ * be `fetchExistingState`'s `select ... from documents`, and the error a developer would see
+ * would be a raw `relation "documents" does not exist`, with no pointer to the fix.
+ */
+export class AskIngestSchemaMissingError extends Error {
+  constructor() {
+    super(
+      'The ask agent schema is not installed on this database: public.documents does not exist, ' +
+        'or the vector extension is not installed. Run `npm run db:setup` first, which applies ' +
+        'db/schema.sql over DATABASE_ADMIN_URL, then re-run `npm run ingest`.'
+    );
+    this.name = 'AskIngestSchemaMissingError';
+  }
+}
+
+/**
+ * Thrown when the corpus tables exist but ask_ingest lacks a grant on one of them. This is a
+ * distinct failure from `AskIngestSchemaMissingError`: db/roles.sql deliberately does not use
+ * `alter default privileges` for the exact per-table grant matrix (see that file's "Deliberately
+ * no alter default privileges" section), so a table added to db/schema.sql after db/roles.sql
+ * last ran has no grant for ask_ingest until `npm run db:roles` runs again. Without this check,
+ * that would surface as a raw `permission denied for table <name>`, indistinguishable at a
+ * glance from a genuine bug in this script.
+ */
+export class AskIngestMissingGrantError extends Error {
+  constructor(table: string) {
+    super(
+      `ask_ingest does not have the privileges it needs on "${table}" yet. This usually means a ` +
+        'table was added to db/schema.sql after db/roles.sql\'s grants were last applied, or ' +
+        '`npm run db:roles` ran before `npm run db:setup` created this table and has not been ' +
+        'run a second time since. Run `npm run db:setup` (if the table is new) and then ' +
+        '`npm run db:roles`, then re-run `npm run ingest`.'
+    );
+    this.name = 'AskIngestMissingGrantError';
+  }
+}
+
+/** Postgres's SQLSTATE for insufficient_privilege: a grant is missing, not a bad query. */
+const POSTGRES_INSUFFICIENT_PRIVILEGE = '42501';
+/** Postgres's SQLSTATE for undefined_table: the relation itself does not exist. */
+const POSTGRES_UNDEFINED_TABLE = '42P01';
+
+/** The three tables ingest reads and writes; see db/roles.sql for why these three specifically. */
+const CORPUS_TABLES = ['corpus_meta', 'documents', 'chunks'] as const;
+
+function postgresErrorCode(err: unknown): string | undefined {
+  if (typeof err === 'object' && err !== null && 'code' in err) {
+    const { code } = err as { code?: unknown };
+    return typeof code === 'string' ? code : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * The guard against running a reconcile with no schema to reconcile against, or with a schema
+ * that exists but ask_ingest cannot yet read or write. Called as the first statement of `main`,
+ * before `loadCorpus` reads a single file and before any Voyage call, so a missing or
+ * under-granted database is reported before any other work happens.
+ *
+ * Two checks, in order: first `to_regclass('public.documents')` and `to_regtype('vector')` in
+ * one round trip (the exact technique named in the brief for this check), which distinguishes
+ * "schema never installed" from everything else. Then, only if that passes, a zero-row `select 1
+ * from <table> limit 0` against each corpus table, which touches no data but does exercise
+ * ask_ingest's actual SELECT grant on that table; the table names come from the fixed
+ * `CORPUS_TABLES` constant above, never from external input, so building that one clause with a
+ * template string is safe despite table names not being bindable as query parameters.
+ */
+export async function assertSchemaExists(runtimeQuery: AskQueryFn): Promise<void> {
+  const result = await runtimeQuery<{ documents_reg: string | null; vector_reg: string | null }>(
+    "select to_regclass('public.documents') as documents_reg, to_regtype('vector') as vector_reg",
+    []
+  );
+  const row = result.rows[0];
+  if (!row || row.documents_reg === null || row.vector_reg === null) {
+    throw new AskIngestSchemaMissingError();
+  }
+
+  for (const table of CORPUS_TABLES) {
+    try {
+      await runtimeQuery(`select 1 from ${table} limit 0`, []);
+    } catch (err) {
+      const code = postgresErrorCode(err);
+      if (code === POSTGRES_INSUFFICIENT_PRIVILEGE) {
+        throw new AskIngestMissingGrantError(table);
+      }
+      if (code === POSTGRES_UNDEFINED_TABLE) {
+        throw new AskIngestSchemaMissingError();
+      }
+      throw err;
+    }
   }
 }
 
@@ -418,7 +527,7 @@ export async function reconcileCorpus(
 }
 
 function createDefaultRuntime(): IngestRuntime {
-  return { query, withTransaction, embed: embedDocuments };
+  return { query: ingestQuery, withTransaction: ingestWithTransaction, embed: embedDocuments };
 }
 
 function printSummary(summary: IngestSummary, elapsedMs: number, force: boolean): void {
@@ -438,6 +547,11 @@ function printSummary(summary: IngestSummary, elapsedMs: number, force: boolean)
 async function main(): Promise<void> {
   const force = process.argv.slice(2).includes('--force');
   const startedAt = Date.now();
+
+  // Before any real work: confirm the schema exists and ask_ingest can actually read and write
+  // the corpus tables, not just that DATABASE_INGEST_URL points at a live database. See
+  // `assertSchemaExists` above for exactly what this does and does not catch.
+  await assertSchemaExists(ingestQuery);
 
   const corpus = loadCorpus();
   const summary = await reconcileCorpus(corpus, { force }, createDefaultRuntime());

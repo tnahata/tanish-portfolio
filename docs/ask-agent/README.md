@@ -52,6 +52,8 @@ row looks wrong.
 | `turns.retrieved` is a snapshot, not a pointer | [03](03-data-model.md) | settled |
 | `users` separate from `sessions`; identity is the principal | [03](03-data-model.md) | settled |
 | No HNSW index; exact scan over ~150 vectors | [03](03-data-model.md) | settled |
+| Three roles (`owner`, `ask_ingest`, `ask_app`); `ask_app` never gets UPDATE/DELETE on corpus tables | [03](03-data-model.md) | settled |
+| No `alter default privileges` for the exact grant matrix; explicit per-table grants, `npm run db:roles` must re-run after a schema change | [03](03-data-model.md) | settled |
 | Only `strong` grounding generates | [04](04-retrieval-grounding.md) | settled |
 | Corroboration requires two distinct documents | [04](04-retrieval-grounding.md) | settled |
 | Verbatim-only documents skip generation entirely | [04](04-retrieval-grounding.md) | settled |

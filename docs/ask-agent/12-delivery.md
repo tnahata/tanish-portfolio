@@ -81,7 +81,10 @@ environment, neither of which is set yet.
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | Neon Postgres |
+| `DATABASE_URL` | Neon Postgres, as the least-privilege `ask_app` role. The running app's connection |
+| `DATABASE_INGEST_URL` | Neon Postgres, as the least-privilege `ask_ingest` role. Read only by `npm run ingest` |
+| `DATABASE_ADMIN_URL` | Neon Postgres, as the owner role. Read only by `npm run db:setup` and `npm run db:roles`; never by the app or by ingest |
+| `ASK_INGEST_PASSWORD` / `ASK_APP_PASSWORD` | optional; pins the password `npm run db:roles` sets for each role, for a reproducible rerun. Unset generates a fresh one each run |
 | `ANTHROPIC_API_KEY` | generation |
 | `VOYAGE_API_KEY` | embeddings |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Sign in with Google; also the `aud` checked server-side |
@@ -92,5 +95,20 @@ environment, neither of which is set yet.
 | `IP_HASH_SALT_SEED` | daily-rotated IP salt derivation |
 | `DAILY_SPEND_CAP_USD` / `USER_SPEND_CAP_USD` | hard ceilings |
 | `APEX_HOST` | asserted against request `Host` in production |
+
+Three connection strings, three roles, one database: see [03 Data model](03-data-model.md) for the
+grant matrix and why the split exists. `npm run db:roles` (creates `ask_ingest` and `ask_app`,
+applies their grants) and `npm run db:setup` (applies `db/schema.sql`) are separate commands that
+can run in either order; `npm run db:roles` prints the `DATABASE_URL` and `DATABASE_INGEST_URL`
+values to paste in, derived from `DATABASE_ADMIN_URL`, rather than requiring them to be assembled
+by hand.
+
+The Next.js app gets these automatically: `next dev` and `next build` load local configuration
+files on their own. Standalone scripts do not get that for free. `npm run ingest`, `npm run
+db:setup`, `npm run db:roles`, and the eval harness once it exists, call a shared loader
+(`scripts/load-env.ts`) as the first thing they do, which reads local configuration the same way
+`next dev` does, before any of the variables above are read. Skipping that call is exactly the bug
+where a script reports a variable as unset even though it is correctly set on disk, because
+nothing ever loaded the file into `process.env`.
 
 Resend needs DNS verification for the sending domain, which has propagation latency: do it early.
