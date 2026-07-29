@@ -3,17 +3,8 @@ import path from 'path';
 import matter from 'gray-matter';
 import { DOCUMENT_KINDS, type CorpusDocument, type DocumentKind } from './types';
 
-/**
- * Loads and validates the authored corpus from disk.
- *
- * This module defines what the agent is allowed to know. Repository source is never read
- * here: only `content/corpus/*.md` and published blog posts. Code reaches the agent solely
- * as snippets quoted by hand into a corpus file.
- *
- * Validation is strict and fails loudly. A malformed corpus file is an authoring mistake
- * caught at ingest, and the alternative (defaulting a missing field) produces a document
- * that retrieves but cites nowhere.
- */
+/** Loads and validates the authored corpus from disk. Defines what the agent is allowed to
+ *  know (see docs/ask-agent/01-corpus.md); malformed frontmatter fails loudly at ingest. */
 
 const CORPUS_DIR = path.join(process.cwd(), 'content/corpus');
 const BLOG_DIR = path.join(process.cwd(), 'content/blog');
@@ -28,12 +19,8 @@ export class CorpusValidationError extends Error {
   }
 }
 
-/**
- * Removes HTML comments before chunking.
- *
- * Corpus files carry authoring scaffolding in `<!-- -->`. None of it is content, and an
- * embedded comment could be retrieved and quoted back to a visitor.
- */
+/** Removes HTML comments before chunking. Corpus files carry authoring scaffolding in
+ *  `<!-- -->`; none of it is content, and an embedded comment could be retrieved and quoted. */
 export function stripHtmlComments(markdown: string): string {
   return markdown.replace(/<!--[\s\S]*?-->/g, '');
 }
@@ -60,11 +47,8 @@ function parseKind(value: unknown, filePath: string): DocumentKind {
   return kind as DocumentKind;
 }
 
-/**
- * `route: null` is meaningful and distinct from a missing route: it declares that no page
- * exists to cite. gray-matter yields `null` for an explicit `null` and `undefined` when the
- * key is absent, so the two are told apart here rather than collapsed.
- */
+/** `route: null` is meaningful and distinct from a missing route: it declares no page exists
+ *  to cite. gray-matter yields `null` for explicit `null`, `undefined` when the key is absent. */
 function parseRoute(data: Record<string, unknown>, filePath: string): string | null {
   if (!('route' in data)) {
     throw new CorpusValidationError(filePath, 'frontmatter `route` is required (use null if no page exists)');
@@ -104,10 +88,8 @@ function loadAuthoredFile(filePath: string): CorpusDocument {
   };
 }
 
-/**
- * Blog posts carry the site's own frontmatter and none of the corpus fields, so their
- * document identity is derived rather than authored.
- */
+/** Blog posts carry the site's own frontmatter and none of the corpus fields, so their
+ *  document identity is derived rather than authored. */
 function loadBlogFile(filePath: string): CorpusDocument {
   const raw = fs.readFileSync(filePath, 'utf-8');
   const { data, content } = matter(raw);
@@ -137,10 +119,8 @@ function readDir(dir: string, extension: string): string[] {
 }
 
 /**
- * Every document the agent is allowed to know, in stable slug order.
- *
- * Throws on a duplicate slug: two documents sharing one primary key would silently
- * overwrite each other on ingest, leaving whichever loaded last.
+ * Every document the agent is allowed to know, in stable slug order. Throws on a duplicate
+ * slug: two documents sharing one primary key would silently overwrite each other on ingest.
  */
 export function loadCorpus(): CorpusDocument[] {
   const documents = [

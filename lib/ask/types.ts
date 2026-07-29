@@ -1,9 +1,6 @@
 /**
- * Shared types for the ask agent's corpus pipeline.
- *
- * `DocumentKind` and `DocumentSource` mirror the `documents` table columns of the same
- * name. They are string unions rather than free text so a typo fails at compile time
- * instead of producing a row nothing will ever match.
+ * Shared types for the ask agent's corpus pipeline. `DocumentKind`/`DocumentSource` mirror the
+ * `documents` table columns; string unions so a typo fails at compile time, not silently.
  */
 
 export const DOCUMENT_KINDS = [

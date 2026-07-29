@@ -3,16 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { CorpusValidationError, loadCorpus, stripHtmlComments } from '../../lib/ask/corpus';
 
-/**
- * Behavioural tests for corpus loading and validation.
- *
- * `lib/ask/corpus.ts` hardcodes `CORPUS_DIR`/`BLOG_DIR` as `path.join(process.cwd(), ...)`,
- * computed once at module load. There is no injection point for a fixture directory without
- * changing that module, which this task explicitly avoids. Instead these tests replace the
- * three `fs` calls corpus.ts makes (`existsSync`, `readdirSync`, `readFileSync`) with in-memory
- * fixtures via `vi.spyOn`, keyed on the real `CORPUS_DIR`/`BLOG_DIR` paths. This never touches
- * `content/corpus/` on disk: loadCorpus() only ever sees the fixture content handed to it.
- */
+/** corpus.ts hardcodes CORPUS_DIR/BLOG_DIR with no fixture injection point, so these tests stub
+ *  `fs`'s three calls via vi.spyOn; content/corpus/ on disk is never touched. */
 
 const CORPUS_DIR = path.join(process.cwd(), 'content/corpus');
 const BLOG_DIR = path.join(process.cwd(), 'content/blog');

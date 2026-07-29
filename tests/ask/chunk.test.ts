@@ -1,19 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { chunkDocument, splitOnHeadings, hashContent } from '../../lib/ask/chunk';
 
-/**
- * Behavioural tests for the corpus chunker.
- *
- * `chunkDocument` packs sections to a soft ~800 token target with ~100 tokens of overlap
- * (see docs/ask-agent/01-corpus.md, "Chunking"). Section sizes below are chosen against real,
- * word-wrapped prose (short lines, ~30 tokens each) so the token-packing behaviour matches how
- * an actual corpus file chunks, not a pathological single-line fixture.
- *
- * Whether a document splits at all is structural, not size-based: a document stays a single
- * chunk only when it has zero or one heading section. A short document with two or more
- * sections still splits, packed toward a smaller target so short unrelated sections (like
- * content/corpus/faq.md's list of FAQ topics) don't collapse back into one chunk.
- */
+/** Behavioural tests for the corpus chunker: chunkDocument packs to a soft ~800 token target
+ *  with ~100 token overlap and splits structurally (2+ headings), not by size. See docs/ask-agent/01-corpus.md. */
 
 const WORDS_PER_LINE = 14;
 
@@ -28,6 +17,12 @@ function makeSection(heading: string, lineCount: number): string {
   return `## ${heading}\n\n${lines.join('\n')}`;
 }
 
+/** A `###` subsection, nested under whatever `##` section precedes it in the document. */
+function makeSubsection(heading: string, lineCount: number): string {
+  const lines = Array.from({ length: lineCount }, (_, i) => makeLine(heading, i));
+  return `### ${heading}\n\n${lines.join('\n')}`;
+}
+
 describe('chunkDocument', () => {
   it('keeps a short single-section document as a single chunk with ordinal 0', () => {
     const content = '# Title\n\nA short paragraph that easily fits inside one chunk.';
@@ -39,9 +34,7 @@ describe('chunkDocument', () => {
   });
 
   it('splits a short multi-section document instead of collapsing it into one chunk', () => {
-    // Well under the old SINGLE_CHUNK_TOKENS/TARGET_TOKENS threshold (800), but it has three
-    // heading sections. The old rule kept anything this small whole; the new rule splits on
-    // structure, not size.
+    // Well under the 800-token threshold, but has three heading sections: splits on structure, not size.
     const doc = [makeSection('First', 3), makeSection('Second', 3), makeSection('Third', 3)].join('\n\n');
 
     const chunks = chunkDocument(doc);
@@ -50,10 +43,8 @@ describe('chunkDocument', () => {
   });
 
   it('separates unrelated short sections into different chunks instead of averaging them into one', () => {
-    // Mirrors the shape of content/corpus/faq.md: several short, topically unrelated sections
-    // in one short document. If packing quietly re-merges everything back into one chunk, an
-    // embedding for this chunk has to represent all six topics at once, which is the exact
-    // dilution problem the structural rule exists to fix.
+    // Mirrors content/corpus/faq.md: short, unrelated sections. Re-merged into one chunk, the
+    // embedding would have to represent all six topics at once -- the dilution this rule prevents.
     const headings = ['Looking', 'Authorization', 'Location', 'Availability', 'Compensation', 'Contact'];
     const doc = headings.map((h) => makeSection(h, 2)).join('\n\n');
 
@@ -125,6 +116,45 @@ describe('chunkDocument', () => {
     expect(bigChunks[0].content).toContain(bigSectionBody);
   });
 
+  it('labels a chunk from a nested "###" section with a "Parent > Child" heading breadcrumb', () => {
+    // The old regex splitter tested a heading's level then discarded it, so "###" and "##"
+    // produced indistinguishable flat sections. LlamaIndex reports the full ancestor chain.
+    const doc = [makeSection('Parent', 20), makeSubsection('Child', 20), makeSection('Sibling', 20)].join('\n\n');
+
+    const chunks = chunkDocument(doc);
+    const childChunk = chunks.find((c) => c.content.includes('Child0w0'));
+    const siblingChunk = chunks.find((c) => c.content.includes('Sibling0w0'));
+
+    expect(childChunk?.heading).toBe('Parent > Child');
+    // A later top-level "##" resets the breadcrumb rather than nesting under the previous
+    // section: "Sibling" is not "Parent > Sibling".
+    expect(siblingChunk?.heading).toBe('Sibling');
+  });
+
+  it('does not split on a heading-shaped line inside a fenced code block', () => {
+    // The defect that motivated replacing the regex splitter: it had no notion of fence state,
+    // so a "##" comment inside a ```ts block (real content in code-hybrid-fit.md) read as a heading.
+    const doc = [
+      '## Real Section',
+      '',
+      'Prose before the snippet.',
+      '',
+      '```ts',
+      '// setup',
+      '## this is a comment, not a heading',
+      'const value = 1;',
+      '```',
+      '',
+      'Prose after the snippet.',
+    ].join('\n');
+
+    const chunks = chunkDocument(doc);
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].heading).toBe('Real Section');
+    expect(chunks[0].content).toContain('## this is a comment, not a heading');
+  });
+
   it('produces a stable contentHash for identical input', () => {
     const content = 'Identical content should hash identically every time.';
 
@@ -158,11 +188,50 @@ describe('splitOnHeadings', () => {
     expect(firstSection?.content.startsWith('## First Section')).toBe(true);
   });
 
-  it('splits on both ## and ### headings into separate sections', () => {
+  it('splits on both ## and ### headings, labelling the nested one with its full ancestor path', () => {
     const markdown = '## Top\n\nTop body.\n\n### Sub\n\nSub body.';
 
     const sections = splitOnHeadings(markdown);
 
-    expect(sections.map((s) => s.heading)).toEqual(['Top', 'Sub']);
+    // "Sub" is nested under "Top": its heading is the breadcrumb "Top > Sub", not the bare
+    // "Sub" a flat splitter would produce. See HEADING_PATH_SEPARATOR in lib/ask/chunk.ts.
+    expect(sections.map((s) => s.heading)).toEqual(['Top', 'Top > Sub']);
+  });
+
+  it('reconstructs the markdown heading syntax LlamaIndex strips off each section', () => {
+    // LlamaIndex hands back a node whose text starts with the bare label ("Sub"), not the
+    // authored line ("### Sub"); confirms the right "#" count is restored for a nested level.
+    const markdown = '## Top\n\nTop body.\n\n### Sub\n\nSub body.';
+
+    const sections = splitOnHeadings(markdown);
+    const subSection = sections.find((s) => s.heading === 'Top > Sub');
+
+    expect(subSection?.content.startsWith('### Sub')).toBe(true);
+  });
+
+  // Same regex-vs-fence defect as the chunkDocument test above (see its comment), asserted
+  // directly against splitOnHeadings, against the actually installed LlamaIndex package.
+  it('is fenced-code-block aware: a "#"-prefixed line inside ``` does not start a new section', () => {
+    const markdown = [
+      '## Before',
+      '',
+      'Text before the fence.',
+      '',
+      '```ts',
+      '## not a heading, just a comment inside a fenced code block',
+      'const x = 1;',
+      '```',
+      '',
+      'Text after the fence.',
+      '',
+      '## After',
+      '',
+      'Final section body.',
+    ].join('\n');
+
+    const sections = splitOnHeadings(markdown);
+
+    expect(sections.map((s) => s.heading)).toEqual(['Before', 'After']);
+    expect(sections[0].content).toContain('## not a heading, just a comment inside a fenced code block');
   });
 });
