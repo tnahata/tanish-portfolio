@@ -72,6 +72,23 @@ flush and gives the panel something to render.
 Runtime is Node, the App Router default, with `export const maxDuration = 30`. The request is
 database-heavy, so the function belongs near Neon.
 
+**Disconnect safety.** A Node serverless function keeps running for as long as it has pending
+I/O (the in-flight generation call, then the turn-log write) independent of whether the client's
+socket is still open, up to `maxDuration`. That is what lets `runAskTurn()`
+(`lib/ask/stream.ts`) always log a turn once `askOnce()` produces a result, with no explicit
+`waitUntil()` call: a disconnect skips further stream writes, never the log. This is a real,
+load-bearing reason this route runs on Node rather than Edge, alongside the database-heavy
+reasoning above. Data-part ordering (sources, then verdict, before any answer or refusal text) is
+deterministic and covered by a test, since that ordering is the product's central claim.
+
+**Generation model and cost.** `claude-sonnet-5` (`lib/ask/generate.ts`): grounded QA over an
+already-scored context, a 120-word cap, and no tool use is well within Sonnet-tier capability, at
+roughly a fifth of Opus's per-token cost. `turns.cost_usd` is priced off Sonnet 5's list rate ($3
+/ $15 per million input/output tokens) rather than Anthropic's lower introductory pricing, so the
+spend-cap accounting in [08 Abuse controls](08-abuse-controls.md) doesn't under-count real spend
+once introductory pricing ends. Revisit both the model and the pricing constants if eval results
+call for a different tier, or if Anthropic's pricing page changes.
+
 **Input cap:** questions over 1,000 characters are rejected before embedding.
 
 ## Conversation history

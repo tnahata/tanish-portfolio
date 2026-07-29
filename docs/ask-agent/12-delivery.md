@@ -114,6 +114,44 @@ Both apply orders for steps 2 and 3 are safe to run in practice (see `db/roles.s
 order" section), but schema-first is the one without an intermediate window where `ask_app` holds
 broader grants than intended.
 
+## Role grants: design notes
+
+Referenced from `db/roles.sql`, which keeps only short pointers to this section.
+
+**Apply order.** `npm run db:roles` is designed to run either before or after `npm run db:setup`
+creates any table. Roles-first: `db/roles.sql`'s `alter default privileges` baseline (full CRUD
+for `ask_ingest`, SELECT+INSERT for `ask_app`) makes each table usable the instant `db/schema.sql`
+creates it, but this is a real, accepted gap until `db:roles` runs a second time: `ask_app`
+briefly holds INSERT on `corpus_meta` (should be SELECT-only) and only SELECT+INSERT on the
+identity/traffic tables (should be full CRUD). Schema-first: every table already exists on
+`db:roles`' one run, so the exact per-table matrix lands directly, no intermediate window.
+`scripts/db-roles.ts` detects which case it is in (checking whether the corpus tables exist
+already) and states which one happened in its own output, including a reminder to re-run when it
+was the roles-first case.
+
+**Convergent, not merely idempotent.** Re-running `db/roles.sql` produces exactly the grant state
+written in the file, discarding whatever either role held before on an existing table, rather
+than layering new grants on old ones. This also makes it safe against a database where
+`ask_ingest`/`ask_app` were granted access by hand before this file existed: whatever they held
+is revoked and rebuilt from the file alone.
+
+**Password mechanism.** `create role` / `alter role ... password` takes the password as a literal
+grammar token, not an expression, so there is no `$1` placeholder to bind it into safely the way
+a `select ... where col = $1` can. `scripts/db-roles.ts` routes the value through
+`select set_config($1, $2, false)` first (an ordinary bindable parameter position), keeping it out
+of the SQL text and out of the committed file; `db/roles.sql` then reads it back with
+`current_setting` and quotes it with `format(..., %L)` before splicing it into a dynamic
+`alter role` statement, rather than ever concatenating the raw value into SQL text.
+
+**Verified against Neon's documentation** (neon.com/docs/manage/roles,
+neon.com/docs/manage/database-access), 2026-07-28: roles created by plain SQL (as `db/roles.sql`
+does) receive only basic public-schema privileges and no `neon_superuser` membership, unlike
+roles created through the Neon console/API/CLI, which are auto-granted `neon_superuser`. That is
+exactly the least-privilege starting point this design wants. Neon also confirms
+`neon_superuser` cannot itself log in and cannot be altered, and already carries `grant all` on
+public-schema tables and sequences, so the owner role needs no extra setup to run the grants in
+`db/roles.sql`.
+
 ## Environment variables
 
 **Implemented today**, present in `.env.example` and read by landed code:
@@ -152,6 +190,21 @@ loader (`scripts/load-env.ts`) as the first thing they do, which reads local con
 way `next dev` does, before any of the variables above are read. Skipping that call is exactly the
 bug where a script reports a variable as unset even though it is correctly set on disk, because
 nothing ever loaded the file into `process.env`.
+
+`scripts/load-env.ts` uses `@next/env`, not the `dotenv` package or Node's `--env-file` flag: only
+`@next/env` resolves variables with the exact file precedence Next itself uses, so a script and the
+running app never disagree about which file wins. It calls `loadEnvConfig` with `dev: true`, since
+every caller is a manual or CI dev-time tool, never a deployment.
+
+**Import-hoisting caveat:** `loadScriptEnv()` only has to run before the *first* `process.env`
+read in the process, not before every import. ES module imports are evaluated before any
+top-level statement in the importing file runs, so a module that reads `process.env` at its own
+top level would already have executed before `loadScriptEnv()`'s call site does, regardless of
+where that call site sits in the file. `lib/ask/db.ts` and `lib/ask/embed.ts` both read
+`process.env` lazily, inside functions invoked later at runtime, so calling `loadScriptEnv()`
+after a script's imports (but before any real work) is sufficient today. A future `lib/ask` module
+that reads configuration at module scope would break that assumption and would need the call
+moved ahead of its import instead.
 
 Resend needs DNS verification for the sending domain, which has propagation latency: do it early.
 

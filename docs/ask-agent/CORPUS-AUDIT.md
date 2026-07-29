@@ -1,5 +1,13 @@
 # Corpus Audit
 
+> **2026-07-29 note:** this audit reasons throughout from the grounding ladder's original
+> cross-document corroboration rule for `strong` (e.g. "strong grounding requires two distinct
+> corroborating documents" below). That rule was removed and replaced with a model-judged
+> answerability check; see [README.md](README.md)'s decision register and rejected-alternatives
+> log for the reversal and the measurements behind it, and
+> [04-retrieval-grounding.md](04-retrieval-grounding.md) for the mechanism that replaced it. This
+> document is left as-is, a dated audit artifact, not rewritten to match.
+
 Read: all 15 files in `content/corpus/`, `docs/ask-agent/01,04,07,09,10,11,12,13-*.md`,
 `Tanish_Nahata-Resume.pdf`, `app/page.tsx`, `app/HomeClient.tsx`, `app/projects/*/page.tsx`,
 `app/stack/page.tsx`, `app/opinions/page.tsx`, `components/About.tsx`, `components/Experience.tsx`,

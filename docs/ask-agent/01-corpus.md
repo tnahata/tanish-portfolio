@@ -88,18 +88,19 @@ in conversation, not an oversight to be cleaned up later. Tracked in [13 Risks](
 
 **`faq.md` and `identity.md` after the corpus audit.** `CORPUS-AUDIT.md` (in this directory) found
 that work authorisation, location, availability, compensation, and education were each stated in
-exactly one document, `faq.md`, which meant a recruiter question about any of them would score
-`weak` and refuse despite the corpus holding the answer, since [04 Retrieval and
-grounding](04-retrieval-grounding.md) requires two distinct corroborating documents for `strong`.
-`identity.md` gained a brief "Current situation" section afterward, restating (not merely pointing
-at) two of those facts, location and education, so those two now have real two-document
-corroboration. Work authorisation, availability, and compensation still do not: `identity.md`'s
-own "What he is looking for" section and its "Current situation" section both only point at the
-FAQ for those three ("are covered in the FAQ", "are answered in the FAQ") rather than restating
-the fact itself, and a pointer sentence is not a second statement of the answer even though it may
-share enough vocabulary to pass a naive corroboration check. That gap is carried as an open risk
-in [13 Risks](13-risks.md), including whether `agent-boundaries.md`'s mention of compensation as a
-boundary happens to corroborate it for unrelated reasons.
+exactly one document, `faq.md`. Under the grounding ladder's original design, that meant a
+recruiter question about any of them would score `weak` and refuse despite the corpus holding the
+answer, since [04 Retrieval and grounding](04-retrieval-grounding.md) required two distinct
+corroborating documents for `strong`. That requirement has since been removed: measurement showed
+it was mistaking topical adjacency in a single-author corpus for real corroboration (see
+[04](04-retrieval-grounding.md)'s reversal writeup and [README](README.md)'s decision log for the
+numbers, including this exact sponsorship-question failure mode). `identity.md`'s "Current
+situation" section, added in response to the original finding, still restates location and
+education directly, which remains good practice for retrieval quality even though it is no longer
+load-bearing for a grading rule. Whether a question about work authorisation, availability, or
+compensation actually gets answered is now the model's call at generation time, made by reading
+whatever `faq.md` content retrieval surfaces, not a function of how many documents mention the
+topic.
 
 ## Frontmatter
 
@@ -141,6 +142,14 @@ document with zero or one heading section stays whole: there is nothing in it to
 document with two or more `##`/`###` heading sections always splits on those headings, no matter how
 short the whole document is.
 
+- **Headings are detected by LlamaIndex's `MarkdownNodeParser`, not a hand-rolled regex.** The
+  regex this replaced (`/^(#{2,3})\s+(.*)$/` applied line by line) could not tell a real heading
+  from a `## comment` inside a fenced code block, which matters specifically because
+  `code-hybrid-fit.md` quotes real TypeScript. The parser tracks fenced-code state and refuses to
+  treat a `#` line as a heading while inside one; verified in `tests/ask/chunk.test.ts` rather than
+  assumed from documentation. It also reports which heading level introduced a section, so a `###`
+  nested under a `##` is labelled by both ("Parent > Child") instead of the two becoming
+  indistinguishable flat sections.
 - **This replaced a size-based shortcut.** `identity.md` and `faq.md` used to stay single chunks
   because they were short. That merged several unrelated facts into one embedding, which could bury
   a specific answer under everything else the document also says, and it over-returned on the
@@ -167,8 +176,10 @@ short the whole document is.
 A chunk is the unit of retrieval, so every section has to stand alone. A section that only makes
 sense after reading the one above it will be retrieved without it.
 
-Splitting further does not weaken corroboration. The ~100 token overlap between adjacent chunks of
-one document is exactly why corroboration requires two distinct documents rather than two chunks:
-extra chunks inside a single document were never eligible to corroborate each other, so a document
-splitting into more pieces changes nothing on that axis. See
-[04 Retrieval and grounding](04-retrieval-grounding.md).
+Splitting further has no effect on grounding. The grounding ladder used to require corroboration
+from a second, distinct document precisely because the ~100 token overlap between adjacent chunks
+of one document meant a single passage split into pieces could otherwise satisfy "≥2 chunks" on
+its own; that check has been removed (see [04 Retrieval and grounding](04-retrieval-grounding.md)
+for why, and what replaced it). The overlap itself is unchanged and still does its original job:
+a cut does not strand a claim mid-sentence at a chunk boundary. It just no longer feeds a
+document-counting rule.

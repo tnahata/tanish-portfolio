@@ -14,9 +14,12 @@
 | Refusal copy is deterministic by question hash | Deterministic reads as consistent; random reads as a slot machine |
 | Voice verified by hand reading, keyed by `ASK_VERSION` | Nothing else detects it |
 
-> **Open contradiction to resolve:** the assembly snippet below sends `...last3Pairs`, while
-> [05 Runtime](05-runtime.md) specifies the full conversation under a 15k token budget and
-> [12 Delivery](12-delivery.md) Phase 3 says "last-3 history". Pick one before Phase 3.
+> **Resolved:** the assembly snippet below shows `...last3Pairs` as placeholder pseudocode, not
+> the implemented behavior. [05 Runtime](05-runtime.md) is the position that shipped: the full
+> conversation under a 15k token budget, oldest pairs evicted first, refused turns included.
+> [05 Runtime](05-runtime.md) is the only one of the three places that argues the number rather
+> than just stating it; the "last-3" phrasing elsewhere was inline shorthand, not a competing
+> rationale. `lib/ask/history.ts` implements this.
 
 ---
 
@@ -44,7 +47,7 @@ generated text.
 const tag = randomTag();   // per request
 system: [{ type: 'text', text: system + constraints + exemplars }],
 messages: [
-  ...last3Pairs,
+  ...historyPairs,          // full conversation, 15k token budget; see 05-runtime.md
   { role: 'user',
     content: `<ctx-${tag} trust="none">${chunks}</ctx-${tag}>\n`
            + `<q-${tag}>${question}</q-${tag}>` },

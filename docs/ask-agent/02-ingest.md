@@ -54,6 +54,15 @@ commit;
 One transaction, so MVCC keeps concurrent readers on the previous snapshot until commit. No
 window where the index is empty.
 
+**Embedding calls happen before that transaction opens, not inside it.** The MVCC guarantee above
+only constrains the *write* window, not when the embeddings were computed. OpenAI calls are slow,
+rate limited, and themselves retry with backoff (`lib/ask/embed.ts`); holding a pooled Postgres
+connection open for that whole span, inside a transaction, would tie an unrelated failure domain
+(OpenAI flakiness) to a scarce resource (`POOL_MAX = 5` in `lib/ask/db.ts`), turning a slow retry
+storm into a long-running transaction (lock contention, vacuum bloat). Ingest is a single-writer
+manual/CI script, so the brief gap between reading existing state and opening the write transaction
+is not a real race in practice: embed first, then write everything atomically.
+
 Unchanged chunks are not re-embedded. At 150 chunks that is a rounding error either way, but the
 reconcile shape is what makes step 4 correct, and correctness is the reason to prefer it over
 delete-everything.

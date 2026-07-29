@@ -63,12 +63,19 @@ over authored prose. Source code reaches it only as excerpts quoted deliberately
 with a permalink, because automated extraction has no notion of what is disclosable and would
 re-expose exactly what the case studies abstract away.
 
-It answers only when retrieval finds corroborating evidence in at least two separate documents.
-Anything weaker is refused, with the reason shown. That threshold is high on purpose: every document
-in the corpus is about the same person, so a question it cannot answer still looks topically
-related, and a system that answers whenever retrieval returns something would produce its most
-confident wrong claims exactly there. Refusing is enforced structurally rather than by instruction:
-the generation step cannot be reached without a value that only the grounding check can produce.
+It answers only when retrieval clears a similarity floor and the model, reading the passages it
+retrieved, judges that those passages actually answer the question. Anything weaker is refused, with
+the reason shown. Both checks exist because every document in the corpus is about the same person,
+so a question it cannot answer still looks topically related, and a system that answers whenever
+retrieval returns something would produce its most confident wrong claims exactly there. Refusing is
+enforced structurally rather than by instruction: the generation step cannot be reached without a
+value that only the grounding check can produce.
+
+An earlier version required corroborating evidence from two separate documents. That rule was
+removed after it was measured against real questions. The corpus is deliberately non-redundant, so
+most facts live in exactly one file, and the rule refused questions the corpus answered in a single
+sentence while passing questions it did not answer at all. Agreement between two documents was never
+independent evidence in the first place, since the same person wrote both.
 
 Questions it cannot answer are captured. He answers them, and published answers become part of the
 corpus, so the blind spots turn into content rather than disappearing.
