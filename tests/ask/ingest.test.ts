@@ -15,18 +15,8 @@ import {
   type IngestRuntime,
 } from '../../scripts/ingest';
 
-/**
- * Behavioural tests for the ingest reconcile, with the database and OpenAI both mocked.
- *
- * `reconcileCorpus` is exercised against `FakeRuntime`, an in-memory stand-in for `documents`
- * and `chunks` that answers the exact SQL shapes `scripts/ingest.ts` issues. Nothing here
- * opens a real connection or calls OpenAI: `embed` is a `vi.fn`, so every assertion about
- * "was OpenAI called" is a call-count assertion on that mock, not an inference from output.
- *
- * `planDocumentChunks` is also tested directly: it is the pure decision function the reconcile
- * is built on (see docs/ask-agent/02-ingest.md, "four things make an embedding stale"), and
- * testing it standalone covers the ordinal/hash logic without any I/O at all.
- */
+/** Behavioural tests for the ingest reconcile, database and OpenAI both mocked; `planDocumentChunks`
+ *  (the pure decision function it's built on, docs/ask-agent/02-ingest.md) is also tested standalone. */
 
 interface FakeDocumentRow {
   id: string;
@@ -53,11 +43,8 @@ function makeResult<Row extends QueryResultRow>(rows: Row[]): QueryResult<Row> {
   return { rows, rowCount: rows.length, command: '', oid: 0, fields: [] } as QueryResult<Row>;
 }
 
-/**
- * A minimal in-memory `documents`/`chunks` pair, driven purely by pattern-matching the SQL
- * text `scripts/ingest.ts` sends. `ON DELETE CASCADE` on `chunks.document_id` is simulated by
- * hand in the sweep branch, matching `db/schema.sql`.
- */
+/** A minimal in-memory `documents`/`chunks` pair, driven by pattern-matching the SQL text
+ *  ingest.ts sends. `ON DELETE CASCADE` is simulated by hand in the sweep branch. */
 function createFakeRuntime(initial: {
   documents: FakeDocumentRow[];
   chunks: FakeChunkRow[];
@@ -469,16 +456,8 @@ describe('reconcileCorpus: deletion sweep', () => {
   });
 });
 
-/**
- * An empty desired corpus is never a legitimate reconcile (see `AskIngestEmptyCorpusError`
- * on `reconcileCorpus`): the bug this guards against is Postgres evaluating
- * `slug <> all($1::text[])` as vacuously true for every row when `$1` is empty, so
- * `sweepDeletedDocuments` would otherwise delete every file-sourced document. The second
- * test below is the one that actually exercises that bug: it seeds a file-sourced document
- * so there is something for the old, unguarded sweep to wrongly delete. Before the guard
- * existed, that test failed with `summary.documentsDeleted` equal to `1`, not `0`, proving
- * the predicate matches real rows rather than passing vacuously on an already-empty table.
- */
+/** Proves the empty-corpus guard matches real rows, not just an already-empty table: the second
+ *  test seeds a document so an unguarded sweep would wrongly delete it (`slug <> all('{}')` is vacuously true). */
 describe('reconcileCorpus: empty corpus guard', () => {
   it('refuses when the corpus is empty and no documents exist', async () => {
     const runtime = createFakeRuntime({ documents: [], chunks: [] });
@@ -537,13 +516,8 @@ describe('reconcileCorpus: empty corpus guard', () => {
   });
 });
 
-/**
- * `assertSchemaExists` is the preflight the brief asked for directly: it is what turns a raw
- * Postgres error (a missing relation, or a missing grant) into a message that names the fix,
- * before `main` does anything else. Exercised here against a fake `AskQueryFn` that answers by
- * pattern-matching the exact SQL text the function sends, the same style `createFakeRuntime`
- * above uses, with no real database or OpenAI call anywhere near it.
- */
+/** assertSchemaExists turns a raw Postgres error (missing relation, missing grant) into a message
+ *  that names the fix. Exercised against a fake AskQueryFn; no real database or OpenAI call. */
 describe('assertSchemaExists', () => {
   interface FakeSchemaCheckOptions {
     /** Row returned for the to_regclass/to_regtype probe. Defaults to "schema present". */

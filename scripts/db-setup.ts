@@ -4,30 +4,12 @@ import { Client } from 'pg';
 import { loadScriptEnv } from './load-env';
 import { ADMIN_CONNECT_TIMEOUT_MS, redactSecrets } from './db-shared';
 
-/**
- * Runs before anything else in this module does real work, for the same reason
- * scripts/ingest.ts calls it first: `tsx scripts/db-setup.ts` is plain Node, not `next dev` or
- * `next build`, so without this call none of the variables below are readable from
- * `process.env` even when a developer has them set correctly on disk. See scripts/load-env.ts.
- */
+// Must run before any process.env read; standalone scripts get no automatic env loading.
+// See scripts/load-env.ts.
 loadScriptEnv();
 
-/**
- * Applies db/schema.sql over DATABASE_ADMIN_URL: creates every ask agent table, or brings an
- * existing database up to date with anything added to that file since it last ran.
- *
- * Role creation, passwords, and grants are a separate concern with their own command,
- * `npm run db:roles` (scripts/db-roles.ts, applying db/roles.sql); this script never touches a
- * role and never touches DATABASE_URL or DATABASE_INGEST_URL, only DATABASE_ADMIN_URL. The two
- * commands can run in either order and are each safe to re-run; see db/roles.sql's "Apply order"
- * section for exactly what each ordering means for the running app and `npm run ingest` in the
- * meantime.
- *
- * Re-runnable: db/schema.sql uses `create table if not exists` throughout, so an already-current
- * database is left untouched.
- *
- * Run with `npm run db:setup`.
- */
+/** Applies db/schema.sql over DATABASE_ADMIN_URL: creates or updates every ask agent table.
+ *  Roles/grants are the separate `npm run db:roles`; both are safe in either order and to re-run. */
 
 const DATABASE_ADMIN_URL_ENV = 'DATABASE_ADMIN_URL';
 const SCHEMA_SQL_PATH = path.join(process.cwd(), 'db/schema.sql');
@@ -47,11 +29,8 @@ export interface SetupConfig {
   adminUrl: string;
 }
 
-/**
- * Reads and validates DATABASE_ADMIN_URL. `env` defaults to `process.env` and is a parameter
- * only so tests can exercise the missing-configuration path against a plain object, with no risk
- * of reading (or needing to clear) real process environment state.
- */
+/** Reads and validates DATABASE_ADMIN_URL. `env` defaults to `process.env`; a parameter only so
+ *  tests can exercise the missing-configuration path against a plain object. */
 export function loadSetupConfig(
   env: Record<string, string | undefined> = process.env
 ): SetupConfig {
@@ -70,11 +49,8 @@ export function loadSetupConfig(
   return { adminUrl };
 }
 
-/**
- * Names of ASK_ROLE_NAMES entries that do not exist on this database yet. Purely informational:
- * db/schema.sql grants nothing, so this has no effect on what this script does, only on what it
- * tells the developer to run next.
- */
+/** Purely informational: db/schema.sql grants nothing, so this only affects what the summary
+ *  tells the developer to run next. */
 async function findMissingAskRoles(client: Client): Promise<string[]> {
   const result = await client.query<{ rolname: string }>(
     'select rolname from pg_roles where rolname = any($1::text[])',
@@ -84,11 +60,8 @@ async function findMissingAskRoles(client: Client): Promise<string[]> {
   return ASK_ROLE_NAMES.filter((name) => !present.has(name));
 }
 
-/**
- * Applies db/schema.sql as a single multi-statement query, the same shape `psql -f` uses and the
- * shape the file's own header already documents: Postgres runs the whole file as one implicit
- * transaction, so either every statement lands or none of it does.
- */
+/** Applies db/schema.sql as one multi-statement query (same shape `psql -f` uses): Postgres
+ *  runs the whole file as one implicit transaction, so either every statement lands or none does. */
 async function applySchema(config: SetupConfig): Promise<{ missingRoles: string[] }> {
   const client = new Client({
     connectionString: config.adminUrl,
@@ -105,9 +78,7 @@ async function applySchema(config: SetupConfig): Promise<{ missingRoles: string[
     const raw = err instanceof Error ? err.message : String(err);
     throw new Error(redactSecrets(raw, [config.adminUrl]));
   } finally {
-    // A failed `end()` here would replace the real error above with a secondary connection-
-    // teardown error; swallowing it mirrors the same rollback-failure handling in
-    // lib/ask/db.ts's withTransaction.
+    // Swallowed so a teardown failure never masks the real error above.
     await client.end().catch(() => undefined);
   }
 }
@@ -138,8 +109,7 @@ async function main(): Promise<void> {
   printSummary(missingRoles);
 }
 
-// Only run when executed directly (`npm run db:setup`), never on import, matching the same guard
-// scripts/ingest.ts uses so tests can import this module's exports without triggering a real run.
+// Only run when executed directly; tests import this module without triggering main().
 const isDirectRun = import.meta.url === `file://${process.argv[1]}`;
 if (isDirectRun) {
   main().catch((err) => {

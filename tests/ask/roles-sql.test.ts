@@ -2,21 +2,8 @@ import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-/**
- * db/roles.sql cannot be executed without a real Postgres, and the brief for this work
- * explicitly rules out running any DDL against a database, ephemeral or otherwise, as part of
- * verification. These are text-level sanity checks instead: they read the file as a string and
- * assert specific statements are present or absent, and that its list of known tables has not
- * drifted from db/schema.sql's actual tables.
- *
- * Be clear about what this does and does not prove. It proves the file's literal shape matches
- * the intended design today, and will fail loudly if a future edit changes that shape (for
- * example, an edit that accidentally adds UPDATE to ask_app's default-privilege baseline). It
- * does not prove the SQL is syntactically valid or behaves as written when Postgres actually
- * parses and runs it; that was instead checked by hand, construct by construct (the `do` blocks,
- * `foreach ... in array`, `continue when`, `format()` with %I/%L), against the PostgreSQL manual.
- * See this task's final report for exactly what was verified and cited.
- */
+/** db/roles.sql can't run without real Postgres: text-level checks only, proving the file's
+ *  shape (statements present/absent, known_tables in sync with db/schema.sql), not valid SQL. */
 
 const rolesSql = fs.readFileSync(path.join(process.cwd(), 'db/roles.sql'), 'utf-8');
 const schemaSql = fs.readFileSync(path.join(process.cwd(), 'db/schema.sql'), 'utf-8');
@@ -46,9 +33,8 @@ describe('db/roles.sql: structural sanity (text-level, not executed against Post
   });
 
   it('never uses ALTER DEFAULT PRIVILEGES FOR ROLE with a hardcoded role name', () => {
-    // Omitting FOR ROLE defaults to the role that runs the file (the owner, since this always
-    // runs over DATABASE_ADMIN_URL), per the PostgreSQL manual. A hardcoded FOR ROLE would
-    // silently stop matching if a different Neon project's owner role had a different name.
+    // Omitting FOR ROLE defaults to the role running the file (the owner); a hardcoded name
+    // would silently stop matching on a different Neon project's owner role.
     expect(rolesSql).not.toMatch(/alter default privileges\s+for role/i);
   });
 

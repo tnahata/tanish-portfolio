@@ -1,8 +1,5 @@
--- Ask agent schema. Ten tables in three groups: corpus, identity and traffic, and
--- operational state. One database, no second datastore on the request path.
---
--- Authority: docs/ask-agent/03-data-model.md. Idempotent: safe to re-run against a live
--- database. Apply with `psql "$DATABASE_URL" -f db/schema.sql`.
+-- Ask agent schema: ten tables, three groups (corpus, identity/traffic, operational state).
+-- Authority: docs/ask-agent/03-data-model.md. Idempotent; apply with `psql "$DATABASE_URL" -f db/schema.sql`.
 
 create extension if not exists vector;
 
@@ -10,9 +7,8 @@ create extension if not exists vector;
 -- Corpus
 -- ---------------------------------------------------------------------------
 
--- Single-row table. Asserted at query time: the retrieval thresholds are calibrated
--- against whichever model built the index, so a mismatch with the running config 503s
--- rather than scoring a query vector against an incompatible space.
+-- Single-row table, asserted at query time: a mismatch with the running config 503s rather
+-- than scoring a query vector against an incompatible embedding space.
 create table if not exists corpus_meta (
   id           int primary key default 1 check (id = 1),
   embed_model  text not null,          -- e.g. 'text-embedding-3-large'
@@ -85,13 +81,11 @@ create table if not exists turns (
   session_id      uuid not null references sessions(id) on delete cascade,
   question        text,                -- nulled by the retention job at 90 days
   answer          text,                -- nulled by the retention job at 90 days
-  outcome         text not null,       -- answered | refused_no_grounding | refused_off_task
-                                       -- | refused_injection | refused_private | refused_budget
+  outcome         text not null,       -- answered | refused_{no_grounding,off_task,unanswerable,injection,private,budget}
   grounding       text,                -- strong | weak | none
   top_score       real,
-  -- A snapshot of what the agent actually read, not pointers into the index. Ingest
-  -- destroys chunk UUIDs, and resolving an old pointer against today's corpus would show
-  -- text the agent never saw.
+  -- A snapshot of what the agent actually read, not pointers: ingest destroys chunk UUIDs, so
+  -- a pointer resolved against today's corpus could show text the agent never saw.
   retrieved       jsonb,               -- [{slug, title, route, score, excerpt}] AS SEEN
   ask_version     text not null,
   corpus_hash     text not null,
@@ -123,11 +117,8 @@ create table if not exists gap_questions (
 );
 
 -- ---------------------------------------------------------------------------
--- Operational state
---
--- The only tables the retention job truncates on age rather than nulling: nonces are dead
--- at 300 seconds, counters and reservations at 48 hours. None of them record what
--- happened, so they can be deleted outright. `turns` is the permanent record.
+-- Operational state: truncated on age by the retention job (nonces 300s, counters/
+-- reservations 48h), never nulled -- none of them record what happened. `turns` is the record.
 -- ---------------------------------------------------------------------------
 
 create table if not exists login_nonces (
@@ -137,9 +128,8 @@ create table if not exists login_nonces (
 );
 create index if not exists login_nonces_expiry_idx on login_nonces (expires_at);
 
--- Fixed windows incremented by a single `insert ... on conflict do update ... returning`,
--- so a check is atomic with no read-then-act race. The composite primary key is what that
--- upsert conflicts on.
+-- Fixed windows, incremented by one atomic `insert ... on conflict do update ... returning`:
+-- no read-then-act race. The composite primary key is what that upsert conflicts on.
 create table if not exists rate_counters (
   bucket       text not null,          -- 'ip:<prefix_hash>:refusal' | ':gen' | 'user:<uuid>'
   window_start timestamptz not null,   -- truncated to the window
@@ -148,9 +138,8 @@ create table if not exists rate_counters (
 );
 create index if not exists rate_counters_window_idx on rate_counters (window_start);
 
--- Rows with an expires_at, not a counter to decrement: an abandoned stream is never
--- committed, expires_at passes, and the live-total predicate stops counting it. No sweep
--- cron. Historical spend is read from turns.cost_usd, not from here.
+-- Rows with an expires_at, not a counter to decrement: an abandoned stream is never committed,
+-- expires_at passes, and the live-total predicate stops counting it. No sweep cron needed.
 create table if not exists spend_reservations (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid references users(id) on delete set null,

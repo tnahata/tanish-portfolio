@@ -7,15 +7,8 @@ import {
   resolvePassword,
 } from '../../scripts/db-roles';
 
-/**
- * Everything `scripts/db-roles.ts` does that is safe to test without a database: password
- * resolution/generation and connection-string construction are pure functions of their inputs,
- * so they are exercised directly against plain objects here. `applyRoles`, the function that
- * actually opens a `pg.Client` and runs db/roles.sql, is not covered by any test in this
- * repository: doing so would mean connecting to a real Postgres, which the brief for this work
- * explicitly rules out. `db/roles.sql` itself is reasoned about, and partially checked for
- * structural regressions, in tests/ask/roles-sql.test.ts.
- */
+/** The pure parts of db-roles.ts: password resolution/generation, connection-string construction.
+ *  `applyRoles` is untested here; db/roles.sql itself is covered by roles-sql.test.ts. */
 
 // Node's base64url encoding of exactly 32 random bytes is always exactly 43 characters, with no
 // padding characters (verified directly against Node's crypto/Buffer implementation, not assumed).
@@ -104,10 +97,7 @@ describe('buildRoleConnectionUrl', () => {
     const trickyPassword = 'p@ss/word#with&reserved=chars';
     const result = buildRoleConnectionUrl(adminUrl, 'ask_ingest', trickyPassword);
 
-    // `URL#password` returns the percent-encoded form (that is the whole point of routing the
-    // password through `new URL()` rather than string interpolation: reserved characters like
-    // `@` and `/` get escaped so they cannot be misread as part of the URL's structure), so
-    // decoding it is what proves the original value survives unchanged.
+    // URL#password returns the percent-encoded form; decoding it proves the value survives unchanged.
     expect(decodeURIComponent(new URL(result).password)).toBe(trickyPassword);
   });
 

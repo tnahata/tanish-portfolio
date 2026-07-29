@@ -1,14 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { AskDbSetupConfigError, loadSetupConfig } from '../../scripts/db-setup';
 
-/**
- * `loadSetupConfig` is the one piece of `scripts/db-setup.ts` that is safe to test without a
- * database: it is a pure function from an environment object to either a config or a thrown
- * error, and never opens a connection. `applySchema` (which actually connects and runs
- * db/schema.sql) is not covered by any test here, for the same reason `applyRoles` in
- * scripts/db-roles.ts is not: exercising it would mean connecting to a real Postgres, which the
- * brief for this work explicitly rules out.
- */
+/** loadSetupConfig is the pure part of db-setup.ts (env object in, config or thrown error out).
+ *  applySchema (opens a real connection) is untested here, same as db-roles.ts's applyRoles. */
 
 describe('loadSetupConfig', () => {
   it('throws AskDbSetupConfigError naming DATABASE_ADMIN_URL when it is missing', () => {
