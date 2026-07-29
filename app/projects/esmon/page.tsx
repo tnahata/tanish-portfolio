@@ -254,10 +254,10 @@ export default function ESMONPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-24">
           {[
-            { metric: '4', label: 'Independent filter contexts across tabs' },
-            { metric: '0', label: 'Deadlocks in PDF generation after offscreen fix' },
-            { metric: '3', label: 'Platform installers shipped from one CI pipeline' },
-            { metric: '∞', label: 'Records processable: SQLite, local, no server' },
+            { metric: '0', label: 'Infrastructure to procure. No server, no accounts, no connectivity.' },
+            { metric: '100%', label: 'Of journey data stays on the machine it was imported on.' },
+            { metric: '1', label: 'Install to go from raw device dump to analysis. The runtime ships inside it.' },
+            { metric: 'PDF', label: 'Every review ends in a document a reviewer can file, share, and act on.' },
           ].map(({ metric, label }) => (
             <div key={label} className="p-6"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(0,217,255,0.08)', borderRadius: '4px' }}>
