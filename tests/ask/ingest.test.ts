@@ -16,12 +16,12 @@ import {
 } from '../../scripts/ingest';
 
 /**
- * Behavioural tests for the ingest reconcile, with the database and Voyage both mocked.
+ * Behavioural tests for the ingest reconcile, with the database and OpenAI both mocked.
  *
  * `reconcileCorpus` is exercised against `FakeRuntime`, an in-memory stand-in for `documents`
  * and `chunks` that answers the exact SQL shapes `scripts/ingest.ts` issues. Nothing here
- * opens a real connection or calls Voyage: `embed` is a `vi.fn`, so every assertion about
- * "was Voyage called" is a call-count assertion on that mock, not an inference from output.
+ * opens a real connection or calls OpenAI: `embed` is a `vi.fn`, so every assertion about
+ * "was OpenAI called" is a call-count assertion on that mock, not an inference from output.
  *
  * `planDocumentChunks` is also tested directly: it is the pure decision function the reconcile
  * is built on (see docs/ask-agent/02-ingest.md, "four things make an embedding stale"), and
@@ -265,7 +265,7 @@ describe('planDocumentChunks', () => {
 });
 
 describe('reconcileCorpus: unchanged content', () => {
-  it('calls Voyage zero times when every chunk hash already matches', async () => {
+  it('calls OpenAI zero times when every chunk hash already matches', async () => {
     const content = 'Stable content that never changes between runs.';
     const chunks = chunkDocument(content);
     const doc = makeDocument({ slug: 'stable-doc', content });
@@ -491,7 +491,7 @@ describe('reconcileCorpus: empty corpus guard', () => {
     expect(embed).not.toHaveBeenCalled();
   });
 
-  it('refuses when the corpus is empty and file-sourced documents exist, before opening a transaction or calling Voyage', async () => {
+  it('refuses when the corpus is empty and file-sourced documents exist, before opening a transaction or calling OpenAI', async () => {
     const runtime = createFakeRuntime({
       documents: [
         {
@@ -542,7 +542,7 @@ describe('reconcileCorpus: empty corpus guard', () => {
  * Postgres error (a missing relation, or a missing grant) into a message that names the fix,
  * before `main` does anything else. Exercised here against a fake `AskQueryFn` that answers by
  * pattern-matching the exact SQL text the function sends, the same style `createFakeRuntime`
- * above uses, with no real database or Voyage call anywhere near it.
+ * above uses, with no real database or OpenAI call anywhere near it.
  */
 describe('assertSchemaExists', () => {
   interface FakeSchemaCheckOptions {

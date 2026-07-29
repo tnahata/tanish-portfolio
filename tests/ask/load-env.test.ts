@@ -5,7 +5,7 @@ import path from 'path';
 import { loadScriptEnv } from '../../scripts/load-env';
 
 /**
- * Regression test for the bug where `npm run ingest` reported `DATABASE_URL`/`VOYAGE_API_KEY`
+ * Regression test for the bug where `npm run ingest` reported `DATABASE_URL`/`OPENAI_API_KEY`
  * as missing even when a developer had them set correctly on disk. The root cause: `tsx
  * scripts/ingest.ts` is plain Node, which never reads local configuration files into
  * `process.env` the way `next dev`/`next build` do, so those variables were undefined

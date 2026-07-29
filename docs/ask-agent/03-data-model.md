@@ -6,7 +6,7 @@
 
 | Decision | Rationale in one line |
 |---|---|
-| Postgres (Neon) with `pgvector`, ten tables, no second datastore | Neon, Anthropic, Voyage, Resend, Google, Vercel is the whole vendor list |
+| Postgres (Neon) with `pgvector`, ten tables, no second datastore | Neon, Anthropic, OpenAI, Resend, Google, Vercel is the whole vendor list |
 | No HNSW index | Exact scan over ~150 vectors is faster and more accurate |
 | `corpus_meta` asserted at query time, 503 on mismatch | Thresholds are meaningless in a different embedding space |
 | One row per turn, not per message | A `role` column leaves half the metrics null and double-counts `/asked` |
@@ -27,7 +27,10 @@
 Postgres (Neon) with `pgvector`. Ten tables in three groups: corpus, identity and traffic, and
 operational state. There is no second datastore: one Postgres holds the vector index, the
 application data, and authentication. The full vendor list for this project is Neon, Anthropic,
-Voyage, Resend, Google, and Vercel.
+OpenAI, Resend, Google, and Vercel. OpenAI replaces what was originally Voyage for embeddings;
+see [02 Ingest](02-ingest.md#embedding-provider) for the model and dimension reasoning. This
+consolidates rather than expands the vendor surface, since Noiseless (Tanish's other project)
+already uses OpenAI embeddings.
 
 ## Why Neon, not Supabase
 
@@ -74,7 +77,7 @@ create extension if not exists vector;
 
 create table corpus_meta (
   id           int primary key default 1 check (id = 1),
-  embed_model  text not null,          -- e.g. 'voyage-3.5-lite'
+  embed_model  text not null,          -- e.g. 'text-embedding-3-large'
   embed_dims   int  not null,
   corpus_hash  text not null,          -- hash of all corpus content
   ingested_at  timestamptz not null default now()
@@ -99,7 +102,7 @@ create table chunks (
   content      text not null,
   content_hash text not null,          -- skips re-embedding unchanged chunks
   token_count  int  not null,
-  embedding    vector(1024) not null,  -- voyage-3.5-lite default dims
+  embedding    vector(1024) not null,  -- text-embedding-3-large, truncated to 1024 via `dimensions`
   unique (document_id, ordinal)
 );
 create index chunks_document_idx on chunks (document_id);

@@ -110,5 +110,5 @@ production.
   also be a free reset for every per-user limit and spend counter, since a fresh `users.id`
   restarts them.
 - **IP salt rotates daily**, since a static salt over IPv4 space is brute-forceable in seconds.
-- **`/privacy` names every subprocessor**: Anthropic, Voyage, Vercel, Neon, Resend, Google. Linked
+- **`/privacy` names every subprocessor**: Anthropic, OpenAI, Vercel, Neon, Resend, Google. Linked
   from the gate.

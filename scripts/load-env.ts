@@ -6,7 +6,7 @@ import { loadEnvConfig } from '@next/env';
  *
  * Next.js loads local config files automatically for `next dev`/`next build`, but a standalone
  * script run via `tsx` (or plain `node`) gets none of that: nothing ever reads those files into
- * `process.env`, so variables like `DATABASE_URL` and `VOYAGE_API_KEY` are undefined even when
+ * `process.env`, so variables like `DATABASE_URL` and `OPENAI_API_KEY` are undefined even when
  * a developer has them set correctly on disk. Call this once, as early as possible, from every
  * script in this project that talks to the database or an external API outside of the Next.js
  * request lifecycle. `scripts/ingest.ts` is the only such script today; the eval harness planned

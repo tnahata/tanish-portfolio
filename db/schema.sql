@@ -15,7 +15,7 @@ create extension if not exists vector;
 -- rather than scoring a query vector against an incompatible space.
 create table if not exists corpus_meta (
   id           int primary key default 1 check (id = 1),
-  embed_model  text not null,          -- e.g. 'voyage-3.5-lite'
+  embed_model  text not null,          -- e.g. 'text-embedding-3-large'
   embed_dims   int  not null,
   corpus_hash  text not null,          -- hash of all corpus content
   ingested_at  timestamptz not null default now()
@@ -43,7 +43,7 @@ create table if not exists chunks (
   content      text not null,
   content_hash text not null,          -- skips re-embedding unchanged chunks
   token_count  int  not null,
-  embedding    vector(1024) not null,  -- voyage-3.5-lite default dims
+  embedding    vector(1024) not null,  -- text-embedding-3-large, truncated via the dimensions param
   unique (document_id, ordinal)
 );
 create index if not exists chunks_document_idx on chunks (document_id);

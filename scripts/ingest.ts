@@ -8,7 +8,7 @@ import { loadScriptEnv } from './load-env';
 /**
  * Runs as the first statement after the imports above, before anything else in this module
  * does real work. `tsx scripts/ingest.ts` is plain Node, not `next dev`/`next build`, so
- * without this call `DATABASE_URL` and `VOYAGE_API_KEY` are undefined in this process
+ * without this call `DATABASE_URL` and `OPENAI_API_KEY` are undefined in this process
  * regardless of what a developer has set locally: see the module doc on `loadScriptEnv` in
  * ./load-env for why this placement is correct even though ES imports are hoisted above it.
  * `lib/ask/db.ts` and `lib/ask/embed.ts` both confirmed to read `process.env` lazily inside
@@ -69,7 +69,7 @@ export class AskIngestEmptyCorpusError extends Error {
 /**
  * The guard against the empty-corpus wipe, called as the first statement of
  * `reconcileCorpus` so it runs before `fetchExistingState` reads a single row, before any
- * Voyage call, and before `withTransaction` opens. Kept as its own function rather than an
+ * OpenAI call, and before `withTransaction` opens. Kept as its own function rather than an
  * inline `if` so the check reads as a precondition of the reconcile, not a rule buried among
  * the rest of the function's logic; a future refactor that reorders `reconcileCorpus` still
  * has to consciously delete this call to lose the protection, rather than accidentally
@@ -140,7 +140,7 @@ function postgresErrorCode(err: unknown): string | undefined {
 /**
  * The guard against running a reconcile with no schema to reconcile against, or with a schema
  * that exists but ask_ingest cannot yet read or write. Called as the first statement of `main`,
- * before `loadCorpus` reads a single file and before any Voyage call, so a missing or
+ * before `loadCorpus` reads a single file and before any OpenAI call, so a missing or
  * under-granted database is reported before any other work happens.
  *
  * Two checks, in order: first `to_regclass('public.documents')` and `to_regtype('vector')` in
@@ -195,7 +195,7 @@ export interface IngestSummary {
 /**
  * The seam between reconcile logic and I/O. `query` and `withTransaction` are the same
  * functions `lib/ask/db.ts` exports; `embed` is `embedDocuments`. Injected so tests can drive
- * `reconcileCorpus` against fakes, with no real database connection and no Voyage call.
+ * `reconcileCorpus` against fakes, with no real database connection and no OpenAI call.
  */
 export interface IngestRuntime {
   query: AskQueryFn;
@@ -212,14 +212,14 @@ export interface ExistingChunkRef {
 export interface ChunkPlan {
   /** New or edited chunks: content_hash differs from what is stored, or --force. */
   toEmbed: CorpusChunk[];
-  /** Chunks whose content_hash already matches the stored row; zero Voyage calls for these. */
+  /** Chunks whose content_hash already matches the stored row; zero OpenAI calls for these. */
   toSkip: CorpusChunk[];
   /** Ordinals stored in the database that the new chunk list no longer reaches (file got shorter). */
   obsoleteOrdinals: number[];
 }
 
 /**
- * Pure diff for one document's chunks: no I/O, no Voyage, no database. Exported so the
+ * Pure diff for one document's chunks: no I/O, no OpenAI, no database. Exported so the
  * decision logic (which four causes of staleness apply, see docs/ask-agent/02-ingest.md) can
  * be tested directly against plain objects, independent of how the rows were fetched or how
  * the plan gets applied.
@@ -419,15 +419,15 @@ async function writeCorpusMeta(txQuery: AskQueryFn, corpus: CorpusDocument[]): P
  * about what to embed, skip, upsert, and delete, with no hidden dependency on the filesystem,
  * `process.argv`, or wall-clock time.
  *
- * Where the Voyage calls sit relative to the transaction: `runtime.embed` is called before
+ * Where the OpenAI calls sit relative to the transaction: `runtime.embed` is called before
  * `runtime.withTransaction` opens, not inside it. The correctness property the doc asks for
  * (MVCC keeps concurrent readers on the previous snapshot; no window where the index is
  * empty) only constrains the *write* window: every database write has to land in one commit.
- * It says nothing about when the embeddings were computed. Voyage calls are slow, rate
+ * It says nothing about when the embeddings were computed. OpenAI calls are slow, rate
  * limited, and themselves retry with backoff (see lib/ask/embed.ts); holding a pooled
  * Postgres connection open for that entire span, inside a transaction, would tie an unrelated
- * failure domain (Voyage flakiness) to a scarce resource (`POOL_MAX = 5` in lib/ask/db.ts) and
- * turn a slow Voyage retry storm into a long-running transaction, which is its own liability
+ * failure domain (OpenAI flakiness) to a scarce resource (`POOL_MAX = 5` in lib/ask/db.ts) and
+ * turn a slow OpenAI retry storm into a long-running transaction, which is its own liability
  * (lock contention, vacuum bloat). Ingest is a single-writer manual/CI script, so the brief
  * gap between reading existing state and opening the write transaction is not a real race in
  * practice. Embedding first, then writing everything atomically, gets the same guarantee the
@@ -456,7 +456,7 @@ export async function reconcileCorpus(
     return { document, chunks, plan: planDocumentChunks(chunks, existingChunks, options.force) };
   });
 
-  // One Voyage call site for the whole corpus: embed.ts batches internally, so calling it
+  // One OpenAI call site for the whole corpus: embed.ts batches internally, so calling it
   // once with every changed chunk (instead of once per document) lets it pack requests
   // optimally. Skipped entirely when nothing changed, so an unchanged corpus costs zero calls.
   const toEmbedTexts = plans.flatMap(({ plan }) => plan.toEmbed.map((chunk) => chunk.content));
@@ -561,7 +561,7 @@ async function main(): Promise<void> {
 
 // Only run when executed directly (`npm run ingest`), never on import. Tests import this
 // module for `reconcileCorpus` and `planDocumentChunks`; without this guard, importing the
-// file would call `main()` and fail on a missing DATABASE_URL or VOYAGE_API_KEY.
+// file would call `main()` and fail on a missing DATABASE_URL or OPENAI_API_KEY.
 const isDirectRun = import.meta.url === `file://${process.argv[1]}`;
 if (isDirectRun) {
   main().catch((err) => {

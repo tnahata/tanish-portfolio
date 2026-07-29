@@ -68,7 +68,7 @@ inferred from what was planned.
 | `db/roles.sql` (three roles, exact per-table grant matrix, session-GUC password mechanism) | Landed |
 | `lib/ask/types.ts`, `lib/ask/tokens.ts`, `lib/ask/corpus.ts`, `lib/ask/chunk.ts` | Landed |
 | `lib/ask/db.ts` (pg pool keyed per connection string, transaction helper for `ask_app` and `ask_ingest`) | Landed |
-| `lib/ask/embed.ts` (Voyage client: batching, retry on 429/5xx, dimension assertion) | Landed |
+| `lib/ask/embed.ts` (OpenAI client: batching, retry on 429/5xx, dimension assertion) | Landed |
 | `scripts/ingest.ts` (reconcile, empty-corpus guard, schema/grant preflight checks) | Landed |
 | `scripts/db-setup.ts`, `scripts/db-roles.ts`, `scripts/db-shared.ts`, `scripts/load-env.ts` | Landed |
 | All fourteen files in `content/corpus/`, both disclosure files carrying a real `clearedOn` date | Landed |
@@ -84,7 +84,7 @@ inferred from what was planned.
 
 Whether ingest has actually been run against a live Neon database is not verifiable from the
 repository alone: nothing here records a past run. The pipeline is code-complete and covered by 74
-unit tests, all against mocked database and Voyage clients, no real connection or API call in the
+unit tests, all against mocked database and OpenAI clients, no real connection or API call in the
 suite. The commit that introduced the role split says this plainly and it still holds: "the role
 ordering logic is reasoned against documented Postgres semantics, not executed: worth one dry run
 on a disposable branch before trusting it."
@@ -104,7 +104,7 @@ full reasoning behind the schema-before-roles preference.
    default-privilege baseline a roles-first run would leave in place. Prints the two ready-to-paste
    connection strings.
 4. Copy the printed `DATABASE_INGEST_URL` and `DATABASE_URL` values into the local environment.
-5. Set `VOYAGE_API_KEY`.
+5. Set `OPENAI_API_KEY`.
 6. `npm run ingest`, to embed and load the corpus (fourteen files plus every blog post) into the
    corpus tables.
 7. `npm test`, to confirm the 74 unit tests still pass. These are mocked and need no live database,
@@ -125,7 +125,7 @@ broader grants than intended.
 | `DATABASE_INGEST_URL` | Neon Postgres, as the least-privilege `ask_ingest` role. Read only by `npm run ingest` |
 | `DATABASE_ADMIN_URL` | Neon Postgres, as the owner role. Read only by `npm run db:setup` and `npm run db:roles`; never by the app or by ingest |
 | `ASK_INGEST_PASSWORD` / `ASK_APP_PASSWORD` | optional; pins the password `npm run db:roles` sets for each role, for a reproducible rerun. Unset generates a fresh one each run |
-| `VOYAGE_API_KEY` | embeddings, read by `lib/ask/embed.ts` |
+| `OPENAI_API_KEY` | embeddings, read by `lib/ask/embed.ts` |
 
 **Planned, for phases not yet built.** Named here so the shape is decided in advance; none of
 these are in `.env.example` yet, and no landed code reads them.

@@ -47,7 +47,8 @@ row looks wrong.
 | Chunk identity is `(document_id, ordinal)`, not a content hash | [02](02-ingest.md) | settled |
 | Model change forces a full re-embed and a threshold re-tune | [02](02-ingest.md) | settled |
 | Ten tables in one Postgres; no second datastore | [03](03-data-model.md) | settled |
-| Vendor list is Neon, Anthropic, Voyage, Resend, Google, Vercel | [03](03-data-model.md), [13](13-risks.md) | settled |
+| Vendor list is Neon, Anthropic, OpenAI, Resend, Google, Vercel | [03](03-data-model.md), [13](13-risks.md) | settled |
+| Embedding provider is OpenAI (`text-embedding-3-large`, `dimensions: 1024`), not Voyage; consolidates the vendor list since Noiseless already uses OpenAI embeddings | [02](02-ingest.md) | settled |
 | One row per turn, not per message | [03](03-data-model.md) | settled |
 | `turns.retrieved` is a snapshot, not a pointer | [03](03-data-model.md) | settled |
 | `users` separate from `sessions`; identity is the principal | [03](03-data-model.md) | settled |

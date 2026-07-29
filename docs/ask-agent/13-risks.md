@@ -37,10 +37,13 @@
   ignored, which is worse than not having the page.
 - **Spend cap as DoS.** An attacker exhausting the global cap makes the agent say "hit my daily
   budget", which reads as broken. Per-user caps limit blast radius but do not remove it.
-- **Six vendors.** Neon, Anthropic, Voyage, Resend, Google, Vercel. Upstash was cut by moving rate
+- **Six vendors.** Neon, Anthropic, OpenAI, Resend, Google, Vercel. Upstash was cut by moving rate
   limits, nonces, and spend reservation into Postgres; see [08 Abuse controls](08-abuse-controls.md).
   The remaining five past Vercel are each load-bearing: no corpus without Neon, no answers without
-  Anthropic, no retrieval without Voyage, no gap loop without Resend, no identity without Google.
+  Anthropic, no retrieval without OpenAI, no gap loop without Resend, no identity without Google.
+  OpenAI replaces what was originally Voyage; this consolidates the vendor list rather than
+  expanding it, since Noiseless already uses OpenAI embeddings. See
+  [03 Data model](03-data-model.md).
 - **Postgres is now a single point of failure for limits as well as data.** Stated for completeness
   rather than as an exposure: the corpus lives there, so an outage already means no answers. There
   is no state in which the agent generates while its limiter is unavailable, which is the property

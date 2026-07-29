@@ -1,7 +1,7 @@
 /**
  * Token estimation for chunk sizing and history budgeting.
  *
- * Deliberately an estimate, not Voyage's or Anthropic's real tokenizer. Nothing in the
+ * Deliberately an estimate, not OpenAI's or Anthropic's real tokenizer. Nothing in the
  * system is correct-or-incorrect based on this number: chunk targets are soft, and the
  * history budget has an order of magnitude of headroom. Pulling in a tokenizer for either
  * would buy accuracy nobody spends.

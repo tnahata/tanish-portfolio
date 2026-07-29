@@ -82,7 +82,7 @@ An assistant that shows its retrieval can be checked; one that only shows prose 
 Next.js on the App Router with TypeScript, Tailwind alongside hand-written CSS for the design
 system, Vercel Analytics, and Vercel for deployment.
 
-The agent adds Postgres on Neon with pgvector for the corpus and its embeddings, Voyage for
+The agent adds Postgres on Neon with pgvector for the corpus and its embeddings, OpenAI for
 embeddings, Claude for generation, Resend for the question queue, and Google sign-in for attribution
 past the first generated answer. Deliberately no Redis: rate limits, login nonces, and spend
 reservation live in Postgres, because what those need is transactional guarantees and adding a

@@ -1,53 +1,83 @@
 import { estimateTokens } from './tokens';
 
 /**
- * Thin client wrapper around Voyage's embeddings API.
+ * Thin client wrapper around OpenAI's embeddings API.
  *
- * Contract verified against docs.voyageai.com (Text Embeddings, API Reference, Error Codes)
- * on 2026-07-28, not written from memory:
- *   - Endpoint: POST https://api.voyageai.com/v1/embeddings, `Authorization: Bearer <key>`.
- *   - Request: `input` (string or array, max 1,000 items), `model`, `input_type`
- *     (null | "query" | "document"), `output_dimension` (2048 | 1024 | 512 | 256).
- *   - `input_type: "document"` prepends a retrieval-indexing prompt; `"query"` prepends a
- *     retrieval-search prompt. Swapping them is silent: nothing errors, retrieval just gets
- *     worse, which is why this module exposes two named functions instead of a boolean flag.
- *   - voyage-3.5-lite request limits: 1,000 texts and 1,000,000 tokens per request.
- *   - Response: `{ object, data: [{ embedding, index }], model, usage: { total_tokens } }`.
- *   - Errors: 400/401/403 are permanent (bad request, bad key, blocked IP); 429 and
- *     5xx (500/502/503/504) are transient and worth retrying. A live check against the
- *     unauthenticated endpoint on 2026-07-28 confirmed the error body shape is
- *     `{"detail": "..."}`, not the `{"error": {...}}` shape some other providers use.
+ * Contract verified against developers.openai.com (Embeddings guide, API Reference, Error
+ * codes, Rate limits) on 2026-07-28, not written from memory:
+ *   - Endpoint: POST https://api.openai.com/v1/embeddings, `Authorization: Bearer <key>`.
+ *   - Request: `input` (string, array of strings, or token arrays; max 2,048 items in the
+ *     array, 8,192 tokens per individual input, 300,000 tokens summed across every input in
+ *     one request), `model`, `dimensions` (only `text-embedding-3-small` and
+ *     `text-embedding-3-large` accept it), `encoding_format` (`"float"` | `"base64"`,
+ *     defaults to `"float"`; sent explicitly here so a future default change can't silently
+ *     switch the response shape this module parses).
+ *   - Response: `{ object: "list", data: [{ object: "embedding", embedding, index }], model,
+ *     usage: { prompt_tokens, total_tokens } }`.
+ *   - Errors: 401 (bad key) and 403 (unsupported region) are permanent; 429 (rate limit) and
+ *     500/503 (server-side) are documented as transient and worth retrying with exponential
+ *     backoff, which is OpenAI's own stated recommendation, not an assumption carried over
+ *     from the Voyage client. 502/504 are kept in the retryable set as conventional transient
+ *     gateway errors even though the fetched docs only named 500 and 503 by number. The exact
+ *     JSON shape of `error` (`message`/`type`/`param`/`code`) was not shown verbatim in the
+ *     fetched page text, so `describeErrorBody` below parses defensively (`message` if
+ *     present, else the raw body) rather than asserting a shape the docs didn't confirm.
  *
- * Only this module builds the Voyage request body; `db/schema.sql`'s `vector(1024)` and
+ * Model and dimension choice: `text-embedding-3-large`, called with `dimensions: 1024`.
+ *   - 1024 keeps `db/schema.sql`'s existing `vector(1024)` column: no migration, and there is
+ *     nothing to migrate yet since the index is empty.
+ *   - Truncated 3-large outperforms 3-small at 3-small's own native size. OpenAI's own
+ *     documentation states a 3-large embedding shortened to 256 dimensions still outperforms
+ *     an unshortened `text-embedding-ada-002` embedding at 1536; 1024 sits well above that
+ *     256-dimension floor, so 3-large truncated to 1024 is expected to beat 3-small's native
+ *     1536 by the same logic, not just meet it.
+ *   - Cost is irrelevant at this corpus size (~47 chunks): the price difference between models
+ *     at that volume is a fraction of a cent either way, so it does not weigh against quality.
+ *   - Quality matters specifically because every corpus document is about the same person
+ *     (Tanish). The crowded middle band between "answers the question" and "topically related
+ *     but does not answer" is exactly what `T_STRONG` (see docs/ask-agent/04-retrieval-grounding.md)
+ *     has to separate, and that separation is harder with a weaker embedding space.
+ *
+ * `input_type` no longer exists as a concept: OpenAI's embeddings endpoint has no
+ * document-versus-query request parameter, unlike Voyage's `input_type: "document" | "query"`.
+ * That parameter was the entire technical reason `embedDocuments` and `embedQuery` were two
+ * functions instead of one: `input_type` changed what got prepended to the text server-side,
+ * and swapping the two silently degraded retrieval with no error. With OpenAI, both functions
+ * now make the exact same request shape; only the calling context (batch of chunks at ingest
+ * time, versus one string at query time) differs. Both names are kept anyway, deliberately not
+ * collapsed into one: Phase 2 call sites (`askOnce()`, `scripts/ingest.ts`) read as "embed this
+ * for indexing" versus "embed this for search" regardless of what the vendor's API happens to
+ * need this year, and collapsing them now would make a future vendor swap that reintroduces an
+ * `input_type`-shaped parameter a breaking rename instead of a body-only change.
+ *
+ * Only this module builds the OpenAI request body; `db/schema.sql`'s `vector(1024)` and
  * `corpus_meta` both depend on `EMBED_MODEL`/`EMBED_DIMENSIONS` having exactly one definition.
  */
 
-const VOYAGE_API_KEY_ENV = 'VOYAGE_API_KEY';
-const VOYAGE_EMBEDDINGS_URL = 'https://api.voyageai.com/v1/embeddings';
+const OPENAI_API_KEY_ENV = 'OPENAI_API_KEY';
+const OPENAI_EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings';
 
 /** The one definition of model and dimensionality. Change here, re-run `npm run ingest --force`. */
-export const EMBED_MODEL = 'voyage-3.5-lite';
+export const EMBED_MODEL = 'text-embedding-3-large';
 export const EMBED_DIMENSIONS = 1024;
 
 /**
- * Voyage's documented `input_type` values. Kept private: callers use `embedDocuments` or
- * `embedQuery`, never this string directly, so the indexing/search distinction can't be
- * passed backwards as a boolean.
+ * Sent explicitly on every request rather than relying on the documented default, so a future
+ * change to OpenAI's default `encoding_format` can't silently switch this module from parsing
+ * `embedding: number[]` to parsing a base64 string it was never written to handle.
  */
-const INPUT_TYPE_DOCUMENT = 'document';
-const INPUT_TYPE_QUERY = 'query';
-type VoyageInputType = typeof INPUT_TYPE_DOCUMENT | typeof INPUT_TYPE_QUERY;
+const ENCODING_FORMAT = 'float';
 
-/** voyage-3.5-lite's documented per-request limits. Batches are split to stay under both. */
-const MAX_TEXTS_PER_REQUEST = 1000;
-const MAX_TOKENS_PER_REQUEST = 1_000_000;
+/** OpenAI's documented per-request limits. Batches are split to stay under both. */
+const MAX_TEXTS_PER_REQUEST = 2048;
+const MAX_TOKENS_PER_REQUEST = 300_000;
 
 /** 429 (rate limit) and 5xx (server-side) are worth retrying; other 4xx are not. */
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 const MAX_ATTEMPTS = 5;
 const BASE_BACKOFF_MS = 500;
 
-/** Thrown when `VOYAGE_API_KEY` is missing, before any request is attempted. */
+/** Thrown when `OPENAI_API_KEY` is missing, before any request is attempted. */
 export class AskEmbedConfigError extends Error {
   constructor(message: string) {
     super(message);
@@ -55,7 +85,7 @@ export class AskEmbedConfigError extends Error {
   }
 }
 
-/** Thrown for a Voyage request that failed permanently, or exhausted its retry budget. */
+/** Thrown for an OpenAI request that failed permanently, or exhausted its retry budget. */
 export class AskEmbedApiError extends Error {
   readonly status?: number;
 
@@ -66,16 +96,17 @@ export class AskEmbedApiError extends Error {
   }
 }
 
-interface VoyageEmbeddingDatum {
+interface OpenAiEmbeddingDatum {
+  object: string;
   embedding: number[];
   index: number;
 }
 
-interface VoyageEmbeddingsResponse {
+interface OpenAiEmbeddingsResponse {
   object: string;
-  data: VoyageEmbeddingDatum[];
+  data: OpenAiEmbeddingDatum[];
   model: string;
-  usage: { total_tokens: number };
+  usage: { prompt_tokens: number; total_tokens: number };
 }
 
 export interface EmbedBatchResult {
@@ -90,10 +121,10 @@ export interface EmbedQueryResult {
 }
 
 function getApiKey(): string {
-  const key = process.env[VOYAGE_API_KEY_ENV];
+  const key = process.env[OPENAI_API_KEY_ENV];
   if (!key) {
     throw new AskEmbedConfigError(
-      `Missing ${VOYAGE_API_KEY_ENV}: it is not set in this process's environment. If you have ` +
+      `Missing ${OPENAI_API_KEY_ENV}: it is not set in this process's environment. If you have ` +
         'already set it in a local configuration file, note that standalone scripts load ' +
         'configuration explicitly rather than picking it up automatically the way next dev ' +
         'and next build do; confirm that loading step ran before this. For preview and ' +
@@ -116,16 +147,16 @@ function backoffMs(attempt: number): number {
 }
 
 /**
- * Voyage's error body is `{"detail": "..."}` (confirmed live against the unauthenticated
- * endpoint), not the `{"error": {...}}` shape some other providers use. Falls back to the raw
- * body, truncated, if it isn't JSON or doesn't carry a `detail` string.
+ * OpenAI's conventional error body is `{"error": {"message": "...", ...}}`, but the exact
+ * shape was not shown verbatim in the fetched documentation text (see module doc above), so
+ * this parses `message` defensively rather than asserting a shape confirmed only from memory.
+ * Falls back to the raw body, truncated, if it isn't JSON or doesn't carry a `message` string.
  */
 function describeErrorBody(bodyText: string): string {
   if (!bodyText) return '';
   try {
-    const parsed = JSON.parse(bodyText) as { detail?: unknown; message?: unknown };
-    if (typeof parsed.detail === 'string') return parsed.detail;
-    if (typeof parsed.message === 'string') return parsed.message;
+    const parsed = JSON.parse(bodyText) as { error?: { message?: unknown } };
+    if (typeof parsed.error?.message === 'string') return parsed.error.message;
   } catch {
     // Not JSON; fall through to the raw text below.
   }
@@ -135,29 +166,26 @@ function describeErrorBody(bodyText: string): string {
 function assertDimension(embedding: number[]): void {
   if (embedding.length !== EMBED_DIMENSIONS) {
     throw new AskEmbedApiError(
-      `Voyage returned a ${embedding.length}-dimension vector, expected ${EMBED_DIMENSIONS}. ` +
-        'This usually means the model or output_dimension has drifted from what ' +
+      `OpenAI returned a ${embedding.length}-dimension vector, expected ${EMBED_DIMENSIONS}. ` +
+        'This usually means the model or dimensions parameter has drifted from what ' +
         'db/schema.sql declares; do not write this vector into the database.'
     );
   }
 }
 
 /**
- * One Voyage request, with retry on transient failures. Kept as the single place that calls
+ * One OpenAI request, with retry on transient failures. Kept as the single place that calls
  * `fetch`, so the retry loop stays next to the request it protects rather than spread across
  * callers.
  */
-async function callVoyage(
-  texts: string[],
-  inputType: VoyageInputType
-): Promise<VoyageEmbeddingsResponse> {
+async function callOpenAi(texts: string[]): Promise<OpenAiEmbeddingsResponse> {
   const apiKey = getApiKey();
   let lastFailure = '';
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     let response: Response;
     try {
-      response = await fetch(VOYAGE_EMBEDDINGS_URL, {
+      response = await fetch(OPENAI_EMBEDDINGS_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,8 +194,8 @@ async function callVoyage(
         body: JSON.stringify({
           input: texts,
           model: EMBED_MODEL,
-          input_type: inputType,
-          output_dimension: EMBED_DIMENSIONS,
+          dimensions: EMBED_DIMENSIONS,
+          encoding_format: ENCODING_FORMAT,
         }),
       });
     } catch (err) {
@@ -179,7 +207,7 @@ async function callVoyage(
     }
 
     if (response.ok) {
-      return (await response.json()) as VoyageEmbeddingsResponse;
+      return (await response.json()) as OpenAiEmbeddingsResponse;
     }
 
     const bodyText = await response.text().catch(() => '');
@@ -188,7 +216,7 @@ async function callVoyage(
 
     if (!isRetryable || attempt === MAX_ATTEMPTS) {
       throw new AskEmbedApiError(
-        `Voyage embeddings request failed with status ${response.status}` +
+        `OpenAI embeddings request failed with status ${response.status}` +
           (detail ? `: ${detail}` : ''),
         response.status
       );
@@ -199,12 +227,12 @@ async function callVoyage(
   }
 
   throw new AskEmbedApiError(
-    `Voyage embeddings request failed after ${MAX_ATTEMPTS} attempts: ${lastFailure}`
+    `OpenAI embeddings request failed after ${MAX_ATTEMPTS} attempts: ${lastFailure}`
   );
 }
 
 /**
- * Splits `texts` into request-sized batches respecting Voyage's documented per-request limits
+ * Splits `texts` into request-sized batches respecting OpenAI's documented per-request limits
  * (count and tokens), using this codebase's existing token estimate. Callers never think about
  * batching; they hand in the full list.
  */
@@ -244,11 +272,12 @@ export async function embedDocuments(texts: string[]): Promise<EmbedBatchResult>
   let tokensUsed = 0;
 
   for (const batch of batches) {
-    const response = await callVoyage(batch, INPUT_TYPE_DOCUMENT);
+    const response = await callOpenAi(batch);
     tokensUsed += response.usage.total_tokens;
 
-    // Voyage returns `index` per item; sort defensively rather than assume response order
-    // matches request order.
+    // OpenAI returns `index` per item, same as Voyage did; sort defensively rather than
+    // assume response order matches request order. Neither vendor's docs guarantee order, so
+    // this is not a Voyage-specific caution carried over out of habit.
     const sorted = [...response.data].sort((a, b) => a.index - b.index);
     for (const item of sorted) {
       assertDimension(item.embedding);
@@ -259,12 +288,16 @@ export async function embedDocuments(texts: string[]): Promise<EmbedBatchResult>
   return { embeddings, tokensUsed };
 }
 
-/** Embeds a single query string for search. Distinct from `embedDocuments`: see module docs. */
+/**
+ * Embeds a single query string for search. Same request shape as `embedDocuments` now that
+ * OpenAI has no document/query distinction (see module doc above); kept as a separate export
+ * for call-site readability, not because the request differs.
+ */
 export async function embedQuery(text: string): Promise<EmbedQueryResult> {
-  const response = await callVoyage([text], INPUT_TYPE_QUERY);
+  const response = await callOpenAi([text]);
   const [datum] = response.data;
   if (!datum) {
-    throw new AskEmbedApiError('Voyage embeddings response contained no data for the query');
+    throw new AskEmbedApiError('OpenAI embeddings response contained no data for the query');
   }
   assertDimension(datum.embedding);
   return { embedding: datum.embedding, tokensUsed: response.usage.total_tokens };

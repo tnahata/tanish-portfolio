@@ -25,7 +25,9 @@ bot check, and no production environment. See [11 Evaluation](11-evaluation.md).
 `previousQuestion + ' ' + currentQuestion`. A follow-up like "what about the caching part?"
 embeds to noise on its own. No extra model call, and it handles anaphora.
 
-Embed with `voyage-3.5-lite`, exact cosine scan over `chunks`, take top 8, then grade.
+Embed with `text-embedding-3-large` (truncated to 1024 dimensions; see
+[02 Ingest](02-ingest.md#embedding-provider)), exact cosine scan over `chunks`, take top 8, then
+grade.
 
 ## The grounding ladder
 
