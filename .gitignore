@@ -5,6 +5,7 @@
 
 # Testing
 /coverage
+/evals/results
 
 # Next.js
 /.next

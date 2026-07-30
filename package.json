@@ -8,12 +8,7 @@
     "start": "next start",
     "lint": "eslint 'app/**/*.{ts,tsx}' 'components/**/*.{ts,tsx}' 'lib/**/*.{ts,tsx}'",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "ingest": "tsx scripts/ingest.ts",
-    "db:setup": "tsx scripts/db-setup.ts",
-    "db:roles": "tsx scripts/db-roles.ts",
-    "ask:search": "tsx scripts/search.ts",
-    "db:verify-roles": "tsx scripts/verify-roles.ts"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@llamaindex/core": "^0.6.22",
@@ -22,6 +17,7 @@
     "ai": "^7.0.41",
     "drizzle-orm": "^0.45.2",
     "gray-matter": "^4.0.3",
+    "js-yaml": "^4.2.0",
     "lucide-react": "^0.577.0",
     "next": "^16.1.6",
     "next-mdx-remote": "^6.0.0",
@@ -32,6 +28,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
     "@next/eslint-plugin-next": "^16.2.7",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.14.14",
     "@types/pg": "^8.20.0",
     "@types/react": "^19.0.1",

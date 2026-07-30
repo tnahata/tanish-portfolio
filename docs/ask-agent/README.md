@@ -1,121 +1,96 @@
-# Ask Agent: Spec Index
+# Ask Agent — Spec Index
 
-A grounded chat agent for tanishnahata.com. Answers only from a curated corpus, shows its
-retrieval work live, refuses out-of-scope questions with a visible reason, and turns the
-questions it cannot answer into a public backlog.
+A grounded chat agent for tanishnahata.com. Answers only from a curated corpus (~12,000 words),
+shows its retrieval work, refuses out-of-scope questions with a visible reason, and surfaces what it
+cannot answer as a gap for the corpus to close later; publishing an answer means running ingest, not
+a runtime write.
 
-Split out of the single-file draft at `docs/ask-agent-spec.md`. That file is deprecated: this split
-set is the source of record. The draft is kept only for history and is not maintained further.
+Rewritten 2026-07-29, down from a 17-file, 2,482-line spec to this 7-file target: that spec argued
+every decision before any code existed, and the 5,582 lines of code it produced for a 12,000-word
+corpus is the signal to cut back. Git history holds the old files, including `CORPUS-AUDIT.md`,
+whose findings depended on a grading rule this rewrite removes.
+
+## Goals and non-goals
+
+Answer only from the approved corpus; real multi-turn chat with history; stream tokens (perceived
+latency matters more than total latency); refuse cleanly and visibly with the reason exposed;
+attribute every generated answer and every dollar to a verified person.
+
+Not in scope: per-page context awareness, first-person voice, reading repository source at
+runtime, tool use of any kind.
 
 ## Read in this order
 
 | # | File | Answers |
 |---|---|---|
-| 00 | [overview.md](00-overview.md) | What it is, why it is not a generic portfolio bot, goals, non-goals |
-| 01 | [corpus.md](01-corpus.md) | What the agent is allowed to know, manifest, frontmatter, chunking |
-| 02 | [ingest.md](02-ingest.md) | Embedding lifecycle, reconcile-not-rebuild, staleness detection |
-| 03 | [data-model.md](03-data-model.md) | Postgres schema and why each table is shaped that way |
-| 04 | [retrieval-grounding.md](04-retrieval-grounding.md) | `askOnce()`, the grounding ladder, verbatim path, refusal taxonomy |
-| 05 | [runtime.md](05-runtime.md) | AI SDK, streaming, data parts, conversation history, route config |
-| 06 | [personality.md](06-personality.md) | Voice, prompt assembly, constraints, refusal copy |
-| 07 | [identity-gate.md](07-identity-gate.md) | Gate on generation, Google sign-in mechanics, environments, privacy |
-| 08 | [abuse-controls.md](08-abuse-controls.md) | BotID, Postgres rate counters, spend reservation |
-| 09 | [gap-queue.md](09-gap-queue.md) | Capture, admin capability links, `/asked` |
-| 10 | [ui.md](10-ui.md) | FAB, panel, starter chips |
-| 11 | [evaluation.md](11-evaluation.md) | Eval set design, strata, dimensions, harness |
-| 12 | [delivery.md](12-delivery.md) | Phases, effort, environment variables |
-| 13 | [risks.md](13-risks.md) | Open risks and what each is mitigated by |
-| 14 | [architecture.md](14-architecture.md) | Diagrams: request lifecycle, grading, content loop, components |
-
-New to this? Read [00 Overview](00-overview.md), then [14 Architecture](14-architecture.md), then
-the decision register below.
+| 01 | [corpus.md](01-corpus.md) | File format, frontmatter, chunking, ingest |
+| 02 | [retrieval.md](02-retrieval.md) | Embedding, retrieval, grounding ladder, thresholds |
+| 03 | [data-model.md](03-data-model.md) | The four tables, and what replaced each deleted one |
+| 04 | [runtime.md](04-runtime.md) | Route order, BotID, auth, rate limiting, streaming, audit log |
+| 05 | [voice-and-ui.md](05-voice-and-ui.md) | Personality, prompt assembly, refusal copy, the chat panel |
+| 06 | [evaluation.md](06-evaluation.md) | Eval set, harness, delivery phases |
 
 ## Decision register
 
-Every non-obvious call, with the file that argues it. Review this table first; open a file when a
-row looks wrong.
-
 | Decision | Where | Status |
 |---|---|---|
-| Authored prose only, repository source never ingested | [01](01-corpus.md) | settled |
-| Fourteen corpus files plus blog posts | [01](01-corpus.md) | settled |
+| Authored prose only; repository source never ingested | [01](01-corpus.md) | settled |
+| `route: null` when no page exists to cite | [01](01-corpus.md) | settled |
 | Citations link to a route, never a fragment | [01](01-corpus.md) | settled |
 | No automated corpus/page drift check | [01](01-corpus.md) | accepted risk |
-| `clearedOn` required on every disclosure file, ingest refuses without it | [01](01-corpus.md) | settled |
-| Ingest is a reconcile against a declared desired state | [02](02-ingest.md) | settled |
-| Embeddings stored inline on the chunk row, no separate vector store | [02](02-ingest.md) | settled |
-| Chunk identity is `(document_id, ordinal)`, not a content hash | [02](02-ingest.md) | settled |
-| Model change forces a full re-embed and a threshold re-tune | [02](02-ingest.md) | settled |
-| Ten tables in one Postgres; no second datastore | [03](03-data-model.md) | settled |
-| Vendor list is Neon, Anthropic, OpenAI, Resend, Google, Vercel | [03](03-data-model.md), [13](13-risks.md) | settled |
-| Embedding provider is OpenAI (`text-embedding-3-large`, `dimensions: 1024`), not Voyage; consolidates the vendor list since Noiseless already uses OpenAI embeddings | [02](02-ingest.md) | settled |
-| One row per turn, not per message | [03](03-data-model.md) | settled |
-| `turns.retrieved` is a snapshot, not a pointer | [03](03-data-model.md) | settled |
-| `users` separate from `sessions`; identity is the principal | [03](03-data-model.md) | settled |
-| No HNSW index; exact scan over ~150 vectors | [03](03-data-model.md) | settled |
-| Three roles (`owner`, `ask_ingest`, `ask_app`); `ask_app` never gets UPDATE/DELETE on corpus tables | [03](03-data-model.md) | settled |
-| No `alter default privileges` for the exact grant matrix; explicit per-table grants, `npm run db:roles` must re-run after a schema change | [03](03-data-model.md) | settled |
-| Only `strong` grounding generates | [04](04-retrieval-grounding.md) | settled |
-| Corroboration requires two distinct documents | [04](04-retrieval-grounding.md) | **reversed** -- see decision log below |
-| Answerability is judged by the model, inside the generation call, via an unforgeable per-request marker | [04](04-retrieval-grounding.md) | settled |
-| Verbatim-only documents skip generation entirely, and never run an answerability check (no model in that path) | [04](04-retrieval-grounding.md) | settled |
-| `generate()` gated structurally by a branded `StrongGrounding` value | [04](04-retrieval-grounding.md) | settled |
-| `T_STRONG` / `T_FLOOR` values | [04](04-retrieval-grounding.md) | **TBD, Phase 2** |
-| Vercel AI SDK only, no second agent framework | [05](05-runtime.md) | settled |
-| Full history sent under a 15k token budget, not a turn window | [05](05-runtime.md) | settled |
-| Refused turns kept in history | [05](05-runtime.md) | settled |
-| No `cache_control` on the system prompt | [06](06-personality.md) | settled |
-| All twelve exemplars are answers, none are refusals | [06](06-personality.md) | settled |
-| Refusal copy selected deterministically by hashing the question | [06](06-personality.md) | settled |
-| Gate on generation, not on message count | [07](07-identity-gate.md) | settled |
-| First generated answer free, per IP prefix (/32, /56), per day | [07](07-identity-gate.md) | settled |
-| Nonce is a row, single-used by `delete … returning` | [07](07-identity-gate.md) | settled |
-| Google button, not One Tap | [07](07-identity-gate.md) | settled |
-| Production guard on `VERCEL_ENV` plus `Host`, never `NODE_ENV` | [07](07-identity-gate.md) | settled |
-| Deletion by email request, no self-serve endpoint | [07](07-identity-gate.md) | settled |
-| BotID fails closed and runs at the edge, before Postgres | [08](08-abuse-controls.md) | settled |
-| Fixed-window rate counters, one atomic upsert per check | [08](08-abuse-controls.md) | settled |
-| Reservations expire by predicate, so no sweep cron exists | [08](08-abuse-controls.md) | settled |
-| Cap check serialized by `pg_advisory_xact_lock` | [08](08-abuse-controls.md) | settled |
-| Publish the answer only, never the question text | [09](09-gap-queue.md) | settled |
-| GET interstitial then POST exchange for admin capability links | [09](09-gap-queue.md) | settled |
-| Publish the refusal rate on `/asked` | [09](09-gap-queue.md) | settled |
-| Eval questions written before the corpus exists | [11](11-evaluation.md) | settled |
-| Labels assigned in two passes, no strata quotas up front | [11](11-evaluation.md) | settled |
-| No hidden holdout | [11](11-evaluation.md) | deliberate tradeoff |
-| Launch gated on false-answer rate 0 and verbatim fidelity 100% | [11](11-evaluation.md) | settled |
-| Neon kept over Supabase: free-tier pause, Pro-only branching, IPv6-only direct connections | [03](03-data-model.md) | settled |
-| Neon Auth evaluated and rejected for v1 | [03](03-data-model.md) | settled, revisit at GA |
-| `db:setup` and `db:roles` are separate commands, since they need different credentials; auto-creating tables from ingest was rejected | [03](03-data-model.md) | settled |
-| Schema applied before roles, to avoid a temporary over-broad grant window | [03](03-data-model.md), [12](12-delivery.md) | settled |
-| Pool cache keyed per connection string, not a single global | [03](03-data-model.md) | settled |
-| Role passwords set through a session GUC, never bound as a literal or concatenated | [03](03-data-model.md) | settled |
-| Ingest refuses to run against an empty corpus | [02](02-ingest.md) | settled |
-| Current resume is the source of truth for facts; job titles are Full Stack Engineer / II / Intern, based in San Francisco | [01](01-corpus.md) | settled |
-| ESMON's disclosure boundary is Tanish's own judgment about a client relationship, not an employer clearance process | [01](01-corpus.md) | settled |
-| Resume content counts as already public, which is what let the disclosure files widen beyond the case study pages | [01](01-corpus.md) | settled |
-| Site calls the project Discovery Agent; corpus calls it Noiseless; route and frontmatter `id` deliberately unchanged | [01](01-corpus.md), [13](13-risks.md) | known inconsistency |
-| Starter chips are ESMON, Noiseless, and personal; no HybridFit chip | [10](10-ui.md) | settled |
-| `faq.md` covers work authorisation, location, availability, compensation, and education; `verbatimOnly` | [01](01-corpus.md) | settled |
-| `identity.md` gained a "Current situation" section to corroborate `faq.md`, without duplicating its sentences | [01](01-corpus.md), [13](13-risks.md) | partial fix, accepted risk |
-| Ask agent implementation delegated to subagents on Sonnet, which read the spec and source before writing code | [12](12-delivery.md) | settled |
-| A PreToolUse hook denies any tool call referencing a local dotenv file, with permission deny rules as a second layer | [12](12-delivery.md) | settled |
+| One chunk per `##` section; no packing, no overlap, no token targets | [01](01-corpus.md) | settled |
+| Reconcile-not-rebuild ingest, one transaction | [01](01-corpus.md) | settled |
+| Only ingest writes to `documents` and `chunks`; the delete sweep is unscoped | [01](01-corpus.md), [03](03-data-model.md) | settled |
+| Ingest refuses to run against an empty desired corpus | [01](01-corpus.md) | settled |
+| Model change forces a full re-embed and a threshold re-tune | [01](01-corpus.md) | settled |
+| Only `strong` grounding generates | [02](02-retrieval.md) | settled |
+| Answerability judged by the model, at generation time, via an unforgeable marker | [02](02-retrieval.md) | settled |
+| Branded `StrongGrounding` value gates `generate()` | [02](02-retrieval.md) | settled |
+| Injection/private pre-filter runs before retrieval, not after grading | [02](02-retrieval.md) | **reversed**, found defect |
+| `T_STRONG = 0.40`, `T_FLOOR = 0.25` | [02](02-retrieval.md) | provisional |
+| Four tables, no second datastore | [03](03-data-model.md) | settled |
+| No HNSW index; exact scan | [03](03-data-model.md) | settled |
+| `ask_events` is append-only; event is a closed enum | [03](03-data-model.md) | settled |
+| Retrieved snapshot stored in the event payload, not chunk pointers | [03](03-data-model.md) | settled |
+| Gaps are a query over `refused` events, not a table | [03](03-data-model.md) | settled |
+| Clerk for auth, not hand-rolled, not Neon Auth | [04](04-runtime.md) | settled |
+| Users upserted just-in-time, not by webhook | [04](04-runtime.md) | settled |
+| Gate is on generation; embedding blocked until the gate passes | [04](04-runtime.md) | settled |
+| Per-user rate limit is one `UPDATE` statement; free turn keyed on a clearable cookie | [04](04-runtime.md) | settled |
+| BotID fails closed | [04](04-runtime.md) | settled |
+| Voice is a colleague, not a publicist | [05](05-voice-and-ui.md) | settled |
+| Refusal copy deterministic by question hash | [05](05-voice-and-ui.md) | settled |
+| Sign-in interstitial inline, pending question held and replayed | [05](05-voice-and-ui.md) | settled |
+| Eval set and harness are built first and survive a rewrite | [06](06-evaluation.md) | settled |
+| No hidden holdout | [06](06-evaluation.md) | deliberate tradeoff |
 
-## Decision log: rejected alternatives
+## Deleted, and why (full reasoning at the pointer)
 
-Options considered and turned down, so they do not get proposed again. One line of reasoning each;
-full argument in the linked file.
+| Deleted | Where |
+|---|---|
+| `corpus_meta`, `sessions`, `turns`, `gap_questions` tables | [03](03-data-model.md) |
+| `login_nonces`, `rate_counters`, `spend_reservations` tables | [03](03-data-model.md), [04](04-runtime.md) |
+| `verbatimOnly` frontmatter/grading path | [02](02-retrieval.md) |
+| `clearedOn` frontmatter | [01](01-corpus.md) |
+| `ASK_VERSION` | [05](05-voice-and-ui.md) |
+| Three-role database split (`owner` / `ask_ingest` / `ask_app`) | [03](03-data-model.md) |
+| `TARGET_TOKENS`, `OVERLAP_TOKENS`, `SHORT_DOC_TARGET_TOKENS`, the packing loop, the overlap-tail function | [01](01-corpus.md) |
+| Cross-document corroboration for `strong` | [02](02-retrieval.md) |
 
-| Rejected | Why | Where |
-|---|---|---|
-| Cross-document corroboration for `strong` (adopted, then reversed 2026-07-29) | Adopted because a pure score threshold on the top chunk couldn't tell "specific match" from "generic match to a person-shaped corpus," so a second document clearing a support bar looked like cheap corroborating evidence. Reversed after running `retrieve()`/`grade()` against the live index on 10 questions: both off-task probes ("capital of France" top 0.0960, "poem about cats" top 0.1594) were already refused by `T_FLOOR` alone, so the diversity check never even evaluated; the only verdict it changed was a false refusal on "When can he start?" (top 0.4171 against `faq :: Availability`, downgraded to `weak` because both supporting chunks came from `faq`); and it failed to block the two cases it exists to catch -- "Does Tanish need visa sponsorship?" graded `strong` across `[identity, faq]` while its top two chunks (`identity :: Where to find him`, `identity :: Name and current role`) don't answer the question, and "What does he think about Rust?" graded `strong` across three documents when the corpus's only whole-word mention of Rust is "He has not written Go or Rust." `identity.md` turned out to be a universal corroborator (644 person-dense words scoring above the support threshold for most personal questions), rubber-stamping a "second document" regardless of relevance. Corroboration across documents is only evidence when sources are independent, and one person authored this entire corpus. Replaced by a model-judged answerability check inside the same generation call; see [04](04-retrieval-grounding.md)'s reversal section for the full writeup. | [04](04-retrieval-grounding.md) |
-| A second model call to judge answerability, separate from generation | Roughly doubles per-turn cost for no accuracy gain the corroboration rule wasn't already failing to buy; folding the judgment into the one generation call via an explicit, unforgeable marker gets the same signal for the price of the call that was happening anyway | [04](04-retrieval-grounding.md) |
-| A fixed refusal marker (e.g. the literal word "unanswerable", or inferring refusal from the model starting a sentence with "I don't know") | Gap-queue answers are published back into the corpus at runtime, so a fixed word or phrase is not permanently safe from appearing in legitimate retrieved prose; a soft prose signal is also not reliable to parse. A marker scoped to the request's own randomized delimiter tag can't be forged by content that existed before the request began | [04](04-retrieval-grounding.md) |
-| Supabase instead of Neon | Free tier pauses a project after a week of inactivity, which this site's sporadic traffic would hit routinely; branching is Pro-only and the eval harness assumes a branch database; direct connections are IPv6, which Vercel does not support, making Supavisor mandatory | [03](03-data-model.md) |
-| Consolidating on Supabase since Noiseless already runs there | The failure mode (a paused, dead agent) outweighs the value of one fewer vendor | [03](03-data-model.md) |
-| Neon Auth for identity | Currently Managed Better Auth, in beta, and Neon has already changed auth stacks once; the gate is on generation, not routes, so a route-guard SDK buys little against a roughly 120-line hand-rolled flow; adopting it re-adds the auth vendor this design removed and welds the project to Neon | [03](03-data-model.md) |
-| Auto-creating corpus tables from `npm run ingest` | `create table if not exists` skips silently when a table exists but differs, so it works until the first schema change and then fails invisibly | [03](03-data-model.md) |
-| `alter default privileges` alone for the exact grant matrix | Scoped to a schema and a creating role, not a named table list, so it cannot express the asymmetry between `ask_ingest` and `ask_app` | [03](03-data-model.md) |
-| Roles-first as the recommended apply order | The first pass has no tables to grant on, so it falls back to a broader default-privilege baseline that overgrants `ask_app` until a second run tightens it | [03](03-data-model.md), [12](12-delivery.md) |
-| Size-based chunking shortcut (short documents stay one chunk) | Merges unrelated facts into one embedding, which can sink a specific answer below the retrieval threshold, and over-returns on the verbatim path | [01](01-corpus.md) |
-| Delete-everything rebuild for ingest | Would wipe runtime-published gap answers and require reading them back out of `gap_questions` to restore them | [02](02-ingest.md) |
+## Risks
+
+| Risk | Mitigation |
+|---|---|
+| Hallucination about a real person | `generate()` unreachable without `StrongGrounding`; false-answer rate gates launch |
+| Cold start | Immediate status part on handler entry; mitigated, not eliminated |
+| Thin corpus at launch | Refusal rate starts high; honest rather than broken |
+| Corpus drift (pages vs. corpus files) | None automated; manual review |
+| Identity is a hard dependency past the first free turn | Accepted; refusals stay ungated so the differentiated behavior is still visible |
+| Spend cap as DoS | Per-user daily limit bounds a signed-in user; BotID and a WAF per-IP rule blunt scripted/volumetric abuse; the Anthropic console cap is the hard ceiling underneath all of it |
+| Anonymous free-turn cookie is clearable | Accepted; BotID and the spend cap are the real bound, not the cookie |
+
+## Vendors
+
+Postgres, Anthropic, OpenAI (embeddings), Clerk, Vercel (hosting, BotID). Five, down from six:
+Resend and Google are gone as direct relationships (Google sits behind Clerk now; the
+gap-notification flow they served is unspecified here, see [03](03-data-model.md)).
