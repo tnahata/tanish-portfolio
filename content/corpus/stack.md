@@ -3,7 +3,6 @@ id: stack
 title: Tools and Technologies
 kind: page
 route: /stack
-verbatimOnly: false
 ---
 
 ## Languages

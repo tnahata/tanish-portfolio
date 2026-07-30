@@ -3,7 +3,6 @@ id: project-esmon
 title: ESMON
 kind: project
 route: /projects/esmon
-verbatimOnly: false
 ---
 
 ## What ESMON is

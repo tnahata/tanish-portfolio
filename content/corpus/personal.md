@@ -3,7 +3,6 @@ id: personal
 title: Outside the Terminal
 kind: page
 route: /
-verbatimOnly: false
 ---
 
 ## Hybrid athlete

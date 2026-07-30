@@ -3,7 +3,6 @@ id: experience-fedex
 title: FedEx Corp
 kind: page
 route: /
-verbatimOnly: false
 ---
 
 ## Role and timeline

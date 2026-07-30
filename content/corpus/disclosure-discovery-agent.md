@@ -3,8 +3,6 @@ id: disclosure-discovery-agent
 title: Noiseless, Cleared Engineering Detail
 kind: disclosure
 route: null
-verbatimOnly: true
-clearedOn: 2026-07-28
 ---
 
 <!-- Deliberately held to what is already public today. Widen only when a real decision is made to cover something beyond the case study. -->

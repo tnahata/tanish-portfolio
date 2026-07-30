@@ -3,8 +3,6 @@ id: disclosure-esmon
 title: ESMON, Cleared Engineering Detail
 kind: disclosure
 route: null
-verbatimOnly: true
-clearedOn: 2026-07-28
 ---
 
 <!-- Cleared for a commissioned project. The boundary here reflects Tanish's own judgment about the client relationship, not an employer clearance process. Vendor identity, binary format specifications, and commercial terms stay out regardless of how the rest of this file widens. -->

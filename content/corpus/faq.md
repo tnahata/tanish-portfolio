@@ -3,7 +3,6 @@ id: faq
 title: Frequently Asked
 kind: page
 route: null
-verbatimOnly: true
 ---
 
 ## What he is looking for

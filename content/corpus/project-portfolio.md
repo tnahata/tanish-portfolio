@@ -3,7 +3,6 @@ id: project-portfolio
 title: This Site
 kind: project
 route: null
-verbatimOnly: false
 ---
 
 ## What this site is
@@ -90,7 +89,12 @@ Next.js on the App Router with TypeScript, Tailwind alongside hand-written CSS f
 system, Vercel Analytics, and Vercel for deployment.
 
 The agent adds Postgres on Neon with pgvector for the corpus and its embeddings, OpenAI for
-embeddings, Claude for generation, Resend for the question queue, and Google sign-in for attribution
-past the first generated answer. Deliberately no Redis: rate limits, login nonces, and spend
-reservation live in Postgres, because what those need is transactional guarantees and adding a
-second datastore to get them would have been a vendor for no gain.
+embeddings, Claude for generation, and Clerk for sign-in, which is required after the first answer
+so every generated answer has a name attached to it.
+
+Four tables, not ten. An earlier version had a table for rate counters, one for login nonces, one
+for spend reservations, and a three-role database split to keep the runtime role away from the
+corpus. All of it went. Rate limiting is one atomic UPDATE, sign-in is Clerk's problem, spend has a
+cap set in the vendor console, and nothing at runtime writes to the corpus at all: only the ingest
+script does, so there is no path left to guard. What remains is an append-only audit log written
+before each action rather than after, so a turn that dies halfway through is still findable.

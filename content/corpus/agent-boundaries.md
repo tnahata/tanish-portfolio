@@ -3,7 +3,6 @@ id: agent-boundaries
 title: What This Agent Will and Will Not Answer
 kind: meta
 route: null
-verbatimOnly: false
 ---
 
 <!-- This file makes claims about the SYSTEM rather than about a person, so it goes stale when the

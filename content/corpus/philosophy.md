@@ -3,7 +3,6 @@ id: philosophy
 title: How Tanish Thinks About Engineering
 kind: page
 route: /
-verbatimOnly: false
 ---
 
 ## Systems thinking

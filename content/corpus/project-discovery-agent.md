@@ -3,7 +3,6 @@ id: project-discovery-agent
 title: Noiseless
 kind: project
 route: /projects/discovery-agent
-verbatimOnly: false
 ---
 
 ## What Noiseless is

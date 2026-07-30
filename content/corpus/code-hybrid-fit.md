@@ -4,7 +4,6 @@ title: HybridFit, Selected Code
 kind: code
 route: /projects/hybrid-fit
 externalUrl: https://github.com/tnahata/hybrid-fit
-verbatimOnly: false
 ---
 
 ## Why there is code here at all

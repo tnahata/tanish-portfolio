@@ -3,7 +3,6 @@ id: identity
 title: Who Tanish Is
 kind: page
 route: /
-verbatimOnly: false
 ---
 
 ## Name and current role

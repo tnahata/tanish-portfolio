@@ -4,7 +4,6 @@ title: HybridFit
 kind: project
 route: /projects/hybrid-fit
 externalUrl: https://github.com/tnahata/hybrid-fit
-verbatimOnly: false
 ---
 
 ## What HybridFit is
