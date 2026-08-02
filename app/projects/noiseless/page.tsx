@@ -1,5 +1,10 @@
-
+import type { Metadata } from 'next';
 import { Mail, ExternalLink } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Noiseless — Tanish Nahata',
+  description: 'AI agent that profiles your expertise, searches X daily for high-signal conversations, and learns from your feedback.',
+};
 
 /* ─── Hero SVG: Slack DM Thread Schematic ────────────────────────────────── */
 function SlackDigestVisual() {
@@ -300,7 +305,7 @@ export default function NoiselessPage() {
 
         <div className="flex flex-wrap gap-3 mb-24">
           {['Python', 'FastAPI', 'LangGraph', 'Claude', 'OpenAI Embeddings', 'PostgreSQL', 'Supabase', 'Slack Socket Mode', 'Vite', 'Railway'].map(tag => (
-            <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(99,102,241,0.7)', border: '1px solid rgba(99,102,241,0.2)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(99,102,241,0.05)' }}>
+            <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(0,217,255,0.65)', border: '1px solid rgba(0,217,255,0.18)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
               {tag}
             </span>
           ))}

@@ -1,5 +1,10 @@
-
+import type { Metadata } from 'next';
 import { ArrowUpRight } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'HybridFit — Tanish Nahata',
+  description: 'Training platform for hybrid athletes: multi-plan enrollment, flexible scheduling, and granular workout logging.',
+};
 
 /* ─── Hero SVG: HybridFit Dashboard Schematic ──────────────────────────────── */
 function HybridFitDashboard() {
@@ -274,7 +279,7 @@ export default function HybridFitPage() {
 
         <div className="flex flex-wrap gap-3 mb-24">
           {['Next.js 15', 'TypeScript', 'NextAuth (Credentials)', 'MongoDB', 'Mongoose', 'Zod', 'Vercel', 'Puppeteer', 'Shadcn/UI', 'TailwindCSS', 'Pinecone (planned)'].map(tag => (
-            <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(34,197,94,0.65)', border: '1px solid rgba(34,197,94,0.18)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(34,197,94,0.04)' }}>
+            <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(0,217,255,0.65)', border: '1px solid rgba(0,217,255,0.18)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
               {tag}
             </span>
           ))}

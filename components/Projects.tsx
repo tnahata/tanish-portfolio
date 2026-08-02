@@ -210,7 +210,7 @@ function ProjectCard({ project, delay }: { project: typeof PROJECTS[number]; del
           </p>
           <div className="flex flex-wrap gap-2">
             {project.tech.map(tag => (
-              <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', letterSpacing: '0.08em', color: 'rgba(0,217,255,0.55)', border: '1px solid rgba(0,217,255,0.15)', padding: '0.2rem 0.6rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
+              <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', letterSpacing: '0.08em', color: 'rgba(0,217,255,0.65)', border: '1px solid rgba(0,217,255,0.15)', padding: '0.2rem 0.6rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
                 {tag}
               </span>
             ))}
