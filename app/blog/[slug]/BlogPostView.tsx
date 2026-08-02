@@ -116,6 +116,7 @@ const mdxComponents = {
     <img
       {...props}
       alt={props.alt ?? ''}
+      loading="lazy"
       style={{
         width: '100%',
         borderRadius: '6px',
