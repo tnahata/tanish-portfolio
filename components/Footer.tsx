@@ -190,10 +190,9 @@ export default function Footer() {
                   fontFamily: 'var(--font-mono)',
                   fontSize: '0.65rem',
                   letterSpacing: '0.2em',
-                  color: 'var(--color-text-muted)',
+                  color: 'var(--color-text-dim)',
                   textTransform: 'uppercase',
                   marginBottom: '0.65rem',
-                  opacity: 0.6,
                 }}
               >
                 Email
@@ -213,7 +212,9 @@ export default function Footer() {
                   onClick={copyEmail}
                   aria-label={copied ? 'Copied!' : 'Copy email'}
                   title={copied ? 'Copied!' : 'Copy email'}
+                  className="footer-copy-btn"
                   style={{
+                    position: 'relative',
                     background: 'none',
                     border: '1px solid rgba(245,245,245,0.12)',
                     borderRadius: '4px',
@@ -250,10 +251,9 @@ export default function Footer() {
                   fontFamily: 'var(--font-mono)',
                   fontSize: '0.65rem',
                   letterSpacing: '0.2em',
-                  color: 'var(--color-text-muted)',
+                  color: 'var(--color-text-dim)',
                   textTransform: 'uppercase',
                   marginBottom: '0.65rem',
-                  opacity: 0.6,
                 }}
               >
                 Resume
@@ -297,10 +297,9 @@ export default function Footer() {
                   fontFamily: 'var(--font-mono)',
                   fontSize: '0.65rem',
                   letterSpacing: '0.2em',
-                  color: 'var(--color-text-muted)',
+                  color: 'var(--color-text-dim)',
                   textTransform: 'uppercase',
                   marginBottom: '0.9rem',
-                  opacity: 0.6,
                 }}
               >
                 Socials
@@ -348,6 +347,14 @@ export default function Footer() {
         </div>
 
       </div>
+
+      <style>{`
+        .footer-copy-btn::before {
+          content: '';
+          position: absolute;
+          inset: -12px;
+        }
+      `}</style>
     </footer>
   );
 }
