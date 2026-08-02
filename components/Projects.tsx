@@ -223,14 +223,14 @@ function ProjectCard({ project, delay }: { project: typeof PROJECTS[number]; del
           {/* Secondary: Case study link */}
           <Link href={`/projects/${project.slug}`}
             className="flex items-center gap-1.5 transition-all duration-200 hover:gap-2.5"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-text-muted)', letterSpacing: '0.04em' }}>
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-text-muted)', letterSpacing: '0.04em', padding: '14px 4px', margin: '-14px -4px' }}>
             <span>{project.caseStudyLabel}</span>
             <ArrowRight size={11} strokeWidth={2} />
           </Link>
           {/* Primary: CTA */}
           <a href={project.href}
             className="flex items-center gap-1.5 transition-all duration-200 hover:gap-2.5"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-accent)', padding: '14px 4px', margin: '-14px -4px' }}>
             <span>{project.cta}</span>
             <ArrowUpRight size={13} strokeWidth={2} />
           </a>
