@@ -207,7 +207,9 @@ export default function BlogPostView({
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-10 pb-24 lg:pt-12 lg:pb-32">
-        <MDXRemote source={content} components={mdxComponents} />
+        <div style={{ maxWidth: '70ch' }}>
+          <MDXRemote source={content} components={mdxComponents} />
+        </div>
       </div>
     </div>
   );
