@@ -1,5 +1,10 @@
-
+import type { Metadata } from 'next';
 import { Mail } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'ESMON — Tanish Nahata',
+  description: 'Analytics desktop app for Indian Railways that turns raw binary journey data into filterable reports, time-series charts, and PDF exports.',
+};
 
 /* ─── Hero SVG: ESMON App Interface Schematic ──────────────────────────────── */
 function ESMONAppVisual() {
