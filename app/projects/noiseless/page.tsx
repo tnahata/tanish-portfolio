@@ -174,7 +174,7 @@ export default function NoiselessPage() {
       {/* ── Hero ── */}
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-16 pb-0">
         <div className="mb-6 flex items-center gap-5">
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(99,102,241,0.7)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(129,140,248,0.85)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
             Agentic AI · Python · LangGraph
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(99,102,241,0.15)' }} />
@@ -235,7 +235,7 @@ export default function NoiselessPage() {
 
         {/* Hard Parts */}
         <div className="mb-6 flex items-center gap-5">
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-secondary)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: '#818cf8', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             02 — The Hard Parts
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(99,102,241,0.15)' }} />
@@ -262,7 +262,7 @@ export default function NoiselessPage() {
             <div key={num} className="p-7"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '4px' }}>
               <div className="flex items-start gap-4 mb-4">
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(99,102,241,0.5)', letterSpacing: '0.1em', marginTop: '2px' }}>{num}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(129,140,248,0.85)', letterSpacing: '0.1em', marginTop: '2px' }}>{num}</span>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: 'var(--color-text)', lineHeight: 1.2 }}>{title}</h3>
               </div>
               <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', lineHeight: '1.75', color: 'var(--color-text-muted)' }}>{body}</p>
@@ -297,7 +297,7 @@ export default function NoiselessPage() {
 
         {/* Tech stack */}
         <div className="mb-6 flex items-center gap-5">
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-secondary)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: '#818cf8', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             04 — Stack
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(99,102,241,0.15)' }} />
@@ -305,7 +305,7 @@ export default function NoiselessPage() {
 
         <div className="flex flex-wrap gap-3 mb-24">
           {['Python', 'FastAPI', 'LangGraph', 'Claude', 'OpenAI Embeddings', 'PostgreSQL', 'Supabase', 'Slack Socket Mode', 'Vite', 'Railway'].map(tag => (
-            <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(0,217,255,0.65)', border: '1px solid rgba(0,217,255,0.18)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
+            <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(0,217,255,0.75)', border: '1px solid rgba(0,217,255,0.18)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
               {tag}
             </span>
           ))}
@@ -353,20 +353,20 @@ export default function NoiselessPage() {
             <a href="https://discoveryagent-production.up.railway.app/"
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-6 py-3 transition-opacity duration-200 hover:opacity-80"
-              style={{ backgroundColor: '#6366f1', color: '#fff', fontFamily: 'var(--font-body)', fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', borderRadius: '3px' }}>
+              style={{ backgroundColor: '#5a5de6', color: '#fff', fontFamily: 'var(--font-body)', fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', borderRadius: '3px' }}>
               <ExternalLink size={14} />
               Try Noiseless
             </a>
             <a href="https://github.com/tnahata/twitterbot"
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-6 py-3 transition-opacity duration-200 hover:opacity-80"
-              style={{ border: '1px solid rgba(99,102,241,0.3)', color: 'rgba(99,102,241,0.8)', fontFamily: 'var(--font-body)', fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', borderRadius: '3px', backgroundColor: 'transparent' }}>
+              style={{ border: '1px solid rgba(99,102,241,0.3)', color: 'rgba(129,140,248,0.85)', fontFamily: 'var(--font-body)', fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', borderRadius: '3px', backgroundColor: 'transparent' }}>
               <ExternalLink size={14} />
               GitHub
             </a>
             <a href="mailto:tanishnahata2002@gmail.com?subject=Noiseless"
               className="flex items-center gap-2 px-6 py-3 transition-opacity duration-200 hover:opacity-80"
-              style={{ border: '1px solid rgba(99,102,241,0.3)', color: 'rgba(99,102,241,0.8)', fontFamily: 'var(--font-body)', fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', borderRadius: '3px', backgroundColor: 'transparent' }}>
+              style={{ border: '1px solid rgba(99,102,241,0.3)', color: 'rgba(129,140,248,0.85)', fontFamily: 'var(--font-body)', fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', borderRadius: '3px', backgroundColor: 'transparent' }}>
               <Mail size={14} />
               Ask me about it
             </a>
