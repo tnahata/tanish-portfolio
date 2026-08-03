@@ -202,7 +202,7 @@ export default function ESMONPage() {
               A core constraint shaped the architecture from the start: the application needs to work in environments where internet access cannot be assumed. These devices operate in remote areas, depots, and fieldwork settings. Connectivity is unreliable or simply not there. Running everything locally with no server dependency wasn&apos;t a simplification, it was a requirement. Data stays on the machine, analysis happens offline, and the tool is usable anywhere the device is.
             </p>
             <p className="" style={{ fontFamily: 'var(--font-body)', fontSize: '0.95rem', lineHeight: '1.85', color: 'var(--color-text-muted)' }}>
-              The people using this daily are operations engineers, not software engineers. It had to be fast, reliable, and self-explanatory across Windows and macOS. Charts downsample large datasets automatically so the interface stays responsive regardless of file size. It ships as native installers on Windows and macOS, produced from a single CI pipeline, with no manual packaging steps required.
+              The people using this daily are operations engineers, not software engineers. It had to be fast, reliable, and self-explanatory. Charts downsample large datasets automatically so the interface stays responsive regardless of file size. It ships as native installers on Windows and macOS, produced from a single CI pipeline, with no manual packaging steps required.
             </p>
           </div>
         </div>
@@ -230,7 +230,7 @@ export default function ESMONPage() {
             {
               num: '03',
               title: 'PDF Generation Deadlocks',
-              body: 'Embedding charts in PDFs required rendering them as images during generation, but the UI framework and the PDF pipeline have conflicting threading requirements. The rendering process needs to happen on the UI thread, while PDF generation runs in the background. Getting these two to cooperate without deadlocking, particularly on macOS, required understanding where the conflict originated and separating the rendering step from the export pipeline entirely using offscreen rendering techniques.',
+              body: 'Embedding charts in PDFs required rendering them as images during generation, but the UI framework and the PDF pipeline have conflicting threading requirements. The rendering process needs to happen on the UI thread, while PDF generation runs in the background. Getting these two to cooperate without deadlocking, particularly on older machines, required understanding where the conflict originated and separating the rendering step from the export pipeline entirely using offscreen rendering techniques.',
             },
           ].map(({ num, title, body }) => (
             <div key={num} className="p-7"
