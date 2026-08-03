@@ -1,10 +1,12 @@
 # UX Audit Fixes — Report
 
 Branch: `ux-fixes` (from `origin/main` at `422bf04`)
-Preview: https://tanish-portfolio-git-ux-fixes-tanish-nahatas-projects.vercel.app (protected by Vercel deployment auth — accessible to the account owner)
+Preview: https://tanish-portfolio-git-ux-fixes-tanish-nahatas-projects.vercel.app (protected by Vercel deployment auth — accessible to the account owner; stable branch alias, latest deployment `dpl_7jHd2SNbkfu28bFgg7YoY4iCvs42`, READY)
 Production baseline measured: https://tanishnahata.com (2026-08-02)
 
-All numbers below were captured with Playwright (`browser_evaluate`) computing `document.documentElement.scrollWidth`, WCAG contrast ratios, and `getBoundingClientRect()` heights directly in a live browser, not estimated.
+All numbers below were captured with Playwright / Chrome DevTools `getComputedStyle` computing `document.documentElement.scrollWidth`, WCAG contrast ratios, and `getBoundingClientRect()` heights directly in a live browser, not estimated.
+
+This report covers two passes: findings 1-3, 8-10, 12, 14a-14b plus hygiene items (first pass), and findings 4-7 plus a hydration-hazard sweep (second pass, approved after the first pass shipped). The second pass's changes are marked accordingly below.
 
 ---
 
@@ -40,6 +42,41 @@ Screenshots: `prod-home-mobile-hero.png` / `prod-footer-mobile.png` (before) vs 
 
 **Before (production, measured):** copyright/nav text = `#b0b0b0` at `opacity:0.45` → effective blended color `rgb(85,87,101)` against `#0a0e27` → **contrast 2.65:1** (fails WCAG AA 4.5:1).
 **After:** `color: rgb(125,135,171)` (`#7d87ab`), no opacity → **contrast 5.362:1** (matches the audit's expected 5.36:1), passes AA.
+
+---
+
+## Findings 4-7 — small-text contrast (second pass)
+
+Deferred in the first pass pending owner sign-off on the color decisions; approved and implemented in this pass. Every ratio below is `getComputedStyle(el).color` blended (where semi-transparent) against the actual rendered ancestor background, then run through the standard WCAG relative-luminance formula — same method as findings 1-3.
+
+**Indigo `#6366f1` -> `#818cf8` for text under 24px** (kept `#6366f1` for borders, fills, and display-size type, e.g. the Noiseless outcome metric numbers at `clamp(2rem, 3.5vw, 3rem)`):
+
+| Element | File | Before | After (color) | After (contrast) |
+|---|---|---|---|---|
+| Noiseless hero breadcrumb | `app/projects/noiseless/page.tsx` | solid `#6366f1`, ~4.1-4.3:1 | `rgba(129,140,248,0.85)` | 4.901:1 |
+| Noiseless hard-part card number (01/02/03) | `app/projects/noiseless/page.tsx` | `rgba(99,102,241,0.5)` | `rgba(129,140,248,0.85)` | 4.768:1 |
+| "02 — The Hard Parts" label, all 3 case studies | `esmon/`, `hybrid-fit/`, `noiseless/page.tsx` | solid `#6366f1`, ~4.1-4.3:1 | solid `#818cf8` | 6.371:1 |
+| "04 — Stack" label, all 3 case studies | `esmon/`, `hybrid-fit/`, `noiseless/page.tsx` | solid `#6366f1`, ~4.1-4.3:1 | solid `#818cf8` | 6.371:1 |
+| Home project card subtitle | `components/Projects.tsx` | solid `#6366f1`, ~4.1-4.3:1 | solid `#818cf8` | 6.142:1 |
+| Home Experience role line ("Software Engineer II") | `components/Experience.tsx` | solid `#6366f1`, ~4.1-4.3:1 | solid `#818cf8` | 6.142:1 |
+| About "My Interests" kicker | `components/About.tsx` | solid `#6366f1`, ~4.1-4.3:1 | solid `#818cf8` | 6.371:1 |
+| Noiseless "GitHub" / "Ask me about it" secondary CTAs *(found during the sweep, not in the original list)* | `app/projects/noiseless/page.tsx` | `rgba(99,102,241,0.8)`, **3.129:1 — a real failure the audit missed** | `rgba(129,140,248,0.85)` | 4.901:1 |
+
+Solid (opaque) uses land at 6.1-6.6:1 since `#818cf8` has much higher luminance than `#6366f1`. Semi-transparent uses needed alpha raised to 0.85 (not just a hue swap) — `rgba(129,140,248,0.7)`, matching the original alpha, only reached ~3.69:1 against the page background, still short of 4.5:1.
+
+**Cyan `rgba(0,217,255,x)` text raised to 0.75 alpha:**
+
+| Element | File | Before | After |
+|---|---|---|---|
+| Blog card date (home "Latest Writing") | `components/LatestWriting.tsx` | 0.45 alpha | 0.75 alpha, 6.468:1 |
+| Blog card date (`/blog` listing) | `app/blog/BlogList.tsx` | 0.45 alpha | 0.75 alpha, 6.468:1 |
+| ESMON hero breadcrumb | `app/projects/esmon/page.tsx` | 0.45 alpha | 0.75 alpha, 6.624:1 |
+| ESMON hard-part card numbers | `app/projects/esmon/page.tsx` | 0.4 alpha | 0.75 alpha, 6.468:1 |
+| HybridFit hard-part card numbers *(catch-all, same pattern as ESMON's)* | `app/projects/hybrid-fit/page.tsx` | 0.4 alpha | 0.75 alpha, 6.468:1 |
+| Home project card index numbers (01/02/03) *(catch-all)* | `components/Projects.tsx` | 0.45 alpha | 0.75 alpha, 6.468:1 |
+| Stack tag text, all 4 surfaces (home, ESMON, HybridFit, Noiseless) | `components/Projects.tsx` + 3 case study pages | 0.65 alpha (5.14:1, from the first pass) | 0.75 alpha, 6.624:1. Tag border alpha (0.18) left unchanged. |
+
+**"Try Noiseless" primary CTA** (`app/projects/noiseless/page.tsx`): measured 4.47:1 (white `#fff` on `#6366f1`, confirmed by computing luminance from first principles — matches the audit's cited number exactly). White is already maximum luminance (1.0), so the audit's suggested fix — lightening the label toward `#eef2ff` — cannot increase contrast against a fixed background; `#eef2ff` computes to luminance ~0.889 (below white's 1.0), which would have *dropped* the ratio to ~3.99:1. Instead: darkened the fill from `#6366f1` to `#5a5de6` (a ~10% luminance reduction, still clearly the same indigo hue) and bumped the label from 600 to 700 weight. Measured after: **5.069:1**, `fontWeight: 700`.
 
 ---
 
@@ -154,27 +191,62 @@ on `/` (and reproducible on `/blog`, `/blog/thread-sleep-8000`).
 
 Did not use `suppressHydrationWarning`: the mismatch was a real bug with a real fix, not an intentional client/server difference.
 
+### Second remaining hazard: footer copyright year (second pass)
+
+**File:** `components/FooterBar.tsx` (called from `app/layout.tsx`)
+
+`FooterBar` is mounted in the root layout and is a client component that called `new Date().getFullYear()` directly in its render. Same hazard class as the date-formatting bug above: the server-rendered HTML embeds whatever year is current when the page is generated (build time, since `/` has no dynamic APIs and gets statically optimized), and the client re-runs the same expression during hydration. Those two evaluations only need to straddle a calendar year boundary to disagree, which throws the identical React #418 hydration error. It wasn't manifesting when audited only because the site happened to have been built in the same year it was being viewed — not because the code was safe.
+
+**Fix:** moved the computation to `app/layout.tsx` (a Server Component, so this only ever runs on the server) and pass it down as a `year` prop; `FooterBar` now just renders `{year}` and never calls `Date` itself. React hydration reuses the server-supplied prop value rather than having the client independently recompute it, so there is no longer a code path that can produce two different answers. Trade-off, stated explicitly per the task: the displayed year can now go stale after a real year boundary until the next deploy (a cosmetic issue), in exchange for eliminating the crash entirely.
+
+**Sweep for other SSR-text hazards** (`grep -rn` for `toLocaleDateString`, `toLocaleString`, `new Date(`, `Math.random` across `app/` and `components/`):
+
+| Location | Verdict | Reason |
+|---|---|---|
+| `LatestWriting.tsx`, `BlogList.tsx`, `BlogPostView.tsx` — `toLocaleDateString` | Already fixed (first pass) | `timeZone: 'UTC'` pinned |
+| `FooterBar.tsx` — `new Date().getFullYear()` | **Fixed (this pass)** | see above |
+| `HomeClient.tsx` — `Math.random()` (radar chart jitter) | Safe, left as-is | Called only inside the `useEffect`-driven `requestAnimationFrame` loop for the `<canvas>` animation; canvas pixels aren't part of the React-diffed DOM, and nothing here renders text or attributes during SSR |
+| `Footer.tsx` — `navigator.clipboard` | Safe, left as-is | Inside the `copyEmail` `onClick` handler, not render |
+| `lib/useUTMPersistence.ts` — `sessionStorage.setItem` | Safe, left as-is | Inside `useEffect`; the component (`UTMTracker`) always renders `null`, so there's no text output to mismatch |
+| `components/Hero.tsx` — `Date.now()`, `Math.random()` | Not touched | Dead code: not imported by any route (confirmed via repo-wide import grep) |
+| `components/visualizers/*.tsx` (AthleticRadar, ParticleField, SprintTrack, MultiSignal) — multiple `Math.random()` calls, some outside effects | Not touched | Dead code: not imported by any route |
+
+No other `Intl.DateTimeFormat`, `toLocaleString`, or `Date.now()` usage exists in live (imported) code.
+
 ---
 
 ## What was NOT changed (explicitly out of scope)
 
-- The indigo `#6366f1 -> #818cf8` swap and cyan-alpha raises on breadcrumbs/dates/tags/card numbers — owner still deciding, per the brief.
 - Local secrets/config files were never read (hook-enforced, and not needed for this task).
 - The old `/projects/ai-agent -> /projects/discovery-agent` redirect entry was left as-is; it now double-hops through the new `discovery-agent -> noiseless` rule to reach the live page, which the brief only asked to add, not consolidate.
-- `FooterBar.tsx`'s `new Date().getFullYear()` copyright year is technically the same class of hydration hazard (static build vs. client compute) as the bug fixed above, but it isn't currently mismatched (site was last built in 2026) and wasn't part of the audit's findings — left alone to avoid unrequested scope expansion.
 - `npm test` — no test script exists in this repo (pre-existing; not introduced by this task).
+- Dead code (`components/Hero.tsx`, `components/visualizers/*`) was left untouched even where it contains the same color/hydration patterns being fixed elsewhere — it isn't imported by any route, so it has no effect on the live site.
+- The Noiseless outcome metric numbers keep solid `#6366f1` — display-size type (`clamp(2rem, 3.5vw, 3rem)`), explicitly excluded by the indigo-swap instruction.
+
+Both items previously deferred here (the indigo/cyan-alpha swap, and the footer year hydration hazard) were approved and are now fixed — see Findings 4-7 and the hydration section above.
 
 ---
 
 ## Verification summary
 
+**First pass:**
 - `npx tsc --noEmit`: clean
 - `npm run lint`: clean
 - `npm run build`: clean (11 routes, all render)
 - `npm test`: no test script in this repo (N/A)
 - Local `next start` (production build), Playwright at 1440px and 390px: all acceptance criteria above confirmed on every route
-- Live preview (`ux-fixes` branch, Vercel deployment `dpl_5jonMfXdzBAsM6cvkfG7Gnd63XFB`, READY): redirect, hydration console cleanliness, footer contrast/nav content, and tag colors re-verified directly (via the account owner's authenticated Chrome session, since Vercel preview deployments are protected by Vercel Authentication and reject unauthenticated tools like plain `curl` or a fresh Playwright context)
+- Live preview (Vercel deployment `dpl_5jonMfXdzBAsM6cvkfG7Gnd63XFB`, READY): redirect, hydration console cleanliness, footer contrast/nav content, and tag colors re-verified directly (via the account owner's authenticated Chrome session, since Vercel preview deployments are protected by Vercel Authentication and reject unauthenticated tools like plain `curl` or a fresh Playwright context)
 - **One caveat:** the sandboxed browser used for the authenticated preview session is locked to a fixed desktop window size (`resize_window` had no effect — `window.screen.width` stayed 1512 regardless), so the 390px mobile screenshots of the *live preview* could not be captured directly. Mobile screenshots included here (`*-localbuild.png`) are from the local production build (`next start`) of the identical commit that's deployed — same code, verified separately at exact 390px viewport via Playwright, including the `scrollWidth === 390` check that failed on production at 459px.
+
+**Second pass (findings 4-7 + footer year hydration fix):**
+- `npx tsc --noEmit`: clean
+- `npm run lint`: clean
+- `npm run build`: clean (11 routes, all render)
+- `npm test`: still no test script in this repo (N/A)
+- Local `next start` (production build): zero console errors/warnings on `/`, `/blog`, `/blog/thread-sleep-8000`, `/projects/esmon`, `/projects/hybrid-fit`, `/projects/noiseless`
+- Every changed color pair measured with `getComputedStyle` against its real rendered background on the local production build — all >=4.5:1 (table above); worst case 4.768:1, most 6+:1
+- Pushed, new Vercel deployment `dpl_7jHd2SNbkfu28bFgg7YoY4iCvs42` reached READY (~33s build)
+- Live preview spot-check (authenticated Chrome session): `/projects/noiseless` (breadcrumb, hard-part numbers, Hard Parts/Stack labels, tags, all three CTAs) and a blog card on `/blog` visually confirmed showing the new colors; console reads zero messages on `/` after a hard reload (footer year fix confirmed on the actual cross-region deployment that reproduces the original hazard class)
 
 ## Screenshots in this directory
 
@@ -193,3 +265,6 @@ Did not use `suppressHydrationWarning`: the mismatch was a real bug with a real 
 | `preview-footer-mobile-localbuild.png` | Local build (same commit), footer, 390px — no overflow, brighter text, Opinions gone |
 | `preview-blog-post-desktop-localbuild.png` | Local build (same commit), blog post, 1440px — 70ch body |
 | `preview-esmon-desktop-localbuild.png` | Local build (same commit), ESMON, 1440px |
+| `preview-noiseless-desktop-v2.jpg` | Live ux-fixes preview (2nd pass), Noiseless hero — lighter indigo breadcrumb |
+| `preview-noiseless-cta-desktop-v2.jpg` | Live ux-fixes preview (2nd pass), Noiseless Stack/CTA section — Try Noiseless (darkened fill, bold), GitHub/Ask me about it (lighter indigo), tags, footer year |
+| `preview-blog-card-desktop-v2.jpg` | Live ux-fixes preview (2nd pass), `/blog` listing — brighter cyan card date |
