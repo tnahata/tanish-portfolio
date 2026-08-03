@@ -89,6 +89,16 @@ Solid (opaque) uses land at 6.1-6.6:1 since `#818cf8` has much higher luminance 
 **Before:** paragraph width = **1152px** at 1440px viewport (full container width).
 **After:** paragraph width = **717.8px** at 1440px viewport. Slightly over the "~700px" estimate in the finding (70ch renders wider than 700px in Space Grotesk at 1rem), but consistent with the explicit "70ch" instruction and the existing 55ch convention.
 
+### Correction — the fix above was rejected
+
+**What was wrong:** the `70ch` constraint above was applied only to the `<MDXRemote>` wrapper, nested inside the unchanged wide `max-w-7xl` container. The container itself was never centered narrower than the page, so the narrowed body sat flush against the container's left edge (the same edge the hero title used) with a large dead gap on the right half of the screen. Measured correct (717.8px wide) but read worse: an asymmetric page, not a centered article.
+
+**What changed:** restructured so meta line, title, and body all live inside one shared column `<div className="mx-auto" style={{ maxWidth: '70ch' }}>`, itself nested in the existing `max-w-7xl` padded container. `mx-auto` centers that single column on the page; every child (date/reading-time line, `h1`, paragraphs, headings, lists, blockquotes, images) now shares its left edge, and the whole block is centered as one unit instead of each element carrying its own independent width. The hero `h1` keeps its existing `55ch` cap, which is narrower than the 70ch column, so it continues to wrap shorter than full column width — expected, and now on the same centered axis as the body.
+
+Code blocks (`pre`) are the one deliberate exception: they get their own width, `max(100%, min(850px, calc(100vw - 8rem)))`, with matching negative `calc()` margins, so a code block can run up to ~850px (wider than the 70ch prose) while staying centered on the same axis as the column. The `100vw - 8rem` term caps the width safely at any viewport so it can never force horizontal scroll; `max(100%, …)` guarantees it's never narrower than the column either.
+
+**Verified:** at 1440px, `getBoundingClientRect()` on the column measured `left: 353.6px`, `right: 1071.4px` against `document.documentElement.clientWidth: 1425px` — left and right gaps both `353.6px` (perfectly centered). A synthetic `pre` breakout tested at the same viewport measured `850px` wide with `287.5px` gaps on each side (also centered, `document.documentElement.scrollWidth` unchanged at `1425`, no horizontal scroll introduced). At 390px, the same breakout formula collapsed the code block to exactly the column's own width (`327px`, no overflow — `scrollWidth === clientWidth === 375`). `npx tsc --noEmit`, `npm run lint`, and `npm run build` all clean after the change.
+
 ---
 
 ## Finding 9 — Redirect /projects/discovery-agent

@@ -78,22 +78,32 @@ const mdxComponents = {
       }}
     />
   ),
-  pre: (props: React.ComponentProps<'pre'>) => (
-    <pre
-      {...props}
-      style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.875rem',
-        lineHeight: '1.7',
-        backgroundColor: '#0d1230',
-        border: '1px solid rgba(0,217,255,0.12)',
-        borderRadius: '4px',
-        padding: '1.25rem 1.5rem',
-        overflowX: 'auto',
-        margin: '2rem 0',
-      }}
-    />
-  ),
+  pre: (props: React.ComponentProps<'pre'>) => {
+    // Code blocks may run modestly wider than the 70ch prose column. Width is
+    // clamped to the viewport (minus the page's outer padding) so it never
+    // forces horizontal scroll, and never shrinks below the column's own width.
+    const width = 'max(100%, min(850px, calc(100vw - 8rem)))';
+    return (
+      <pre
+        {...props}
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.875rem',
+          lineHeight: '1.7',
+          backgroundColor: '#0d1230',
+          border: '1px solid rgba(0,217,255,0.12)',
+          borderRadius: '4px',
+          padding: '1.25rem 1.5rem',
+          overflowX: 'auto',
+          width,
+          marginTop: '2rem',
+          marginBottom: '2rem',
+          marginLeft: `calc((100% - ${width}) / 2)`,
+          marginRight: `calc((100% - ${width}) / 2)`,
+        }}
+      />
+    );
+  },
   code: (props: React.ComponentProps<'code'>) => {
     const isInline = typeof props.children === 'string';
     if (!isInline) return <code {...props} />;
@@ -172,43 +182,46 @@ export default function BlogPostView({
 }) {
   return (
     <div style={{ backgroundColor: 'var(--color-primary)', minHeight: '100vh', paddingTop: '60px' }}>
-      {/* Hero */}
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-16 pb-0">
-        <div className="mb-6 flex items-center gap-5">
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.6rem',
-              color: 'rgba(0,217,255,0.7)',
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-            }}
-          >
-            {formatDate(date)} · {readingTime}
-          </span>
-          <div className="flex-1 h-px" style={{ background: 'rgba(0,217,255,0.15)' }} />
-        </div>
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
+        {/* Single centered column: meta, title, and body all share this axis. */}
+        <div className="mx-auto" style={{ maxWidth: '70ch' }}>
+          {/* Hero */}
+          <div className="pt-16 pb-0">
+            <div className="mb-6 flex items-center gap-5">
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.6rem',
+                  color: 'rgba(0,217,255,0.7)',
+                  letterSpacing: '0.2em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {formatDate(date)} · {readingTime}
+              </span>
+              <div className="flex-1 h-px" style={{ background: 'rgba(0,217,255,0.15)' }} />
+            </div>
 
-        <h1
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(2.5rem, 6vw, 5rem)',
-            fontWeight: 700,
-            color: 'var(--color-text)',
-            lineHeight: 1.05,
-            letterSpacing: '-0.03em',
-            marginBottom: '1.5rem',
-            maxWidth: '55ch',
-          }}
-        >
-          {title}
-        </h1>
-      </div>
+            <h1
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(2.5rem, 6vw, 5rem)',
+                fontWeight: 700,
+                color: 'var(--color-text)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.03em',
+                marginBottom: '1.5rem',
+                maxWidth: '55ch',
+              }}
+            >
+              {title}
+            </h1>
+          </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-10 pb-24 lg:pt-12 lg:pb-32">
-        <div style={{ maxWidth: '70ch' }}>
-          <MDXRemote source={content} components={mdxComponents} />
+          {/* Content */}
+          <div className="pt-10 pb-24 lg:pt-12 lg:pb-32">
+            <MDXRemote source={content} components={mdxComponents} />
+          </div>
         </div>
       </div>
     </div>
