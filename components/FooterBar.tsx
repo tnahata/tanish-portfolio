@@ -11,7 +11,7 @@ const NAV = [
   { label: 'Contact', href: '/#contact' },
 ];
 
-export default function FooterBar() {
+export default function FooterBar({ year }: { year: number }) {
   return (
     <div
       style={{
@@ -51,7 +51,7 @@ export default function FooterBar() {
               letterSpacing: '0.05em',
             }}
           >
-            © {new Date().getFullYear()} Tanish Nahata
+            © {year} Tanish Nahata
           </p>
 
           <nav aria-label="Footer navigation">
