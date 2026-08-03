@@ -97,7 +97,11 @@ Solid (opaque) uses land at 6.1-6.6:1 since `#818cf8` has much higher luminance 
 
 Code blocks (`pre`) are the one deliberate exception: they get their own width, `max(100%, min(850px, calc(100vw - 8rem)))`, with matching negative `calc()` margins, so a code block can run up to ~850px (wider than the 70ch prose) while staying centered on the same axis as the column. The `100vw - 8rem` term caps the width safely at any viewport so it can never force horizontal scroll; `max(100%, …)` guarantees it's never narrower than the column either.
 
-**Verified:** at 1440px, `getBoundingClientRect()` on the column measured `left: 353.6px`, `right: 1071.4px` against `document.documentElement.clientWidth: 1425px` — left and right gaps both `353.6px` (perfectly centered). A synthetic `pre` breakout tested at the same viewport measured `850px` wide with `287.5px` gaps on each side (also centered, `document.documentElement.scrollWidth` unchanged at `1425`, no horizontal scroll introduced). At 390px, the same breakout formula collapsed the code block to exactly the column's own width (`327px`, no overflow — `scrollWidth === clientWidth === 375`). `npx tsc --noEmit`, `npm run lint`, and `npm run build` all clean after the change.
+**Verified (local production build, `next start`):** at 1440px, `getBoundingClientRect()` on the column measured `left: 353.6px`, `right: 1071.4px` against `document.documentElement.clientWidth: 1425px` — left and right gaps both `353.6px` (perfectly centered). This post has no fenced code block in its content (the code-editor-styled visual in the screenshots is an SVG diagram, not a `<pre>`), so the `pre` breakout was verified by injecting a synthetic element with the exact production style and measuring it: at 1440px it rendered `850px` wide with `287.5px` gaps on each side (centered, `document.documentElement.scrollWidth` unchanged at `1425`, no horizontal scroll introduced); at 390px the same formula collapsed it to exactly the column's own width (`327px`, no overflow — `scrollWidth === clientWidth === 375`). `npx tsc --noEmit`, `npm run lint`, and `npm run build` all clean after the change.
+
+**Verified (live preview, deployment `dpl_3k7Ew7mUR1uABHKrKhkoywnJo6ES`, commit `728222f`, READY):** re-checked via the account owner's authenticated Chrome session at 1440px on `/blog/thread-sleep-8000` — column measured `left: 389.6px`, `right: 1107.4px` against `clientWidth: 1497px`, gaps `389.59px` / `389.60px` (centered, matches the local build within rounding), `scrollWidth === clientWidth`, no overflow. **Caveat, same as the first pass:** this sandboxed authenticated browser's window is fixed size and does not respond to resize requests (confirmed again: a `390x844` resize request left the captured screenshot at the same `1485x812` dimensions), so the 390px mobile check for the *live preview* specifically could not be captured — the mobile numbers above are from the local production build of the identical deployed commit.
+
+**Screenshot:** `preview-blog-post-desktop.jpg` was recaptured from this live preview session, same URL, same 1440px window, same viewport-only (not full-page) crop as the original file it replaces — both are `1485x812`.
 
 ---
 
@@ -269,7 +273,7 @@ Both items previously deferred here (the indigo/cyan-alpha swap, and the footer 
 | `prod-esmon-desktop.png` | Production ESMON case study, 1440px |
 | `preview-home-desktop.jpg` | Live ux-fixes preview, home, desktop |
 | `preview-footer-desktop.jpg` | Live ux-fixes preview, footer, desktop (Opinions gone, brighter text, tags cyan) |
-| `preview-blog-post-desktop.jpg` | Live ux-fixes preview, blog post, desktop |
+| `preview-blog-post-desktop.jpg` | Live ux-fixes preview, blog post, desktop — **recaptured** after the Finding 8 correction; column now centered (was flush-left with a dead right half in the version this replaces) |
 | `preview-esmon-casestudy-desktop.jpg` | Live ux-fixes preview, ESMON, desktop (title bar confirms metadata title) |
 | `preview-home-mobile-hero-localbuild.png` | Local build (same commit), home, 390px — no radar labels overlapping |
 | `preview-footer-mobile-localbuild.png` | Local build (same commit), footer, 390px — no overflow, brighter text, Opinions gone |
