@@ -59,7 +59,8 @@ export default function HomeClient({ latestPosts }: { latestPosts: PostPreview[]
       const H = canvas.height;
       const cx = W / 2;
       const cy = H / 2;
-      const R = Math.min(W, H) * 0.38;
+      const isMobile = W < 768;
+      const R = Math.min(W, H) * (isMobile ? 0.28 : 0.38);
 
       t += 0.008;
       ctx.clearRect(0, 0, W, H);
@@ -146,12 +147,14 @@ export default function HomeClient({ latestPosts }: { latestPosts: PostPreview[]
         ctx.fillStyle = i < 2 || i === 7 ? '#00d9ff' : '#6366f1';
         ctx.fill();
 
-        const lp = getPoint(i, 1.18, cx, cy, R);
-        ctx.font = `11px "Space Grotesk", sans-serif`;
-        ctx.fillStyle = 'rgba(245,245,245,0.45)';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(AXES[i].label, lp.x, lp.y);
+        if (!isMobile) {
+          const lp = getPoint(i, 1.18, cx, cy, R);
+          ctx.font = `11px "Space Grotesk", sans-serif`;
+          ctx.fillStyle = 'rgba(245,245,245,0.45)';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(AXES[i].label, lp.x, lp.y);
+        }
       }
 
       // Center dot

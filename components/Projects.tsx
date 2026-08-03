@@ -187,7 +187,7 @@ function ProjectCard({ project, delay }: { project: typeof PROJECTS[number]; del
         {/* Content — links to case study */}
         <Link href={`/projects/${project.slug}`} className="block flex-1 p-7 lg:p-8 pb-5">
           <div className="flex items-center justify-between mb-5">
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'rgba(0,217,255,0.45)', letterSpacing: '0.12em' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'rgba(0,217,255,0.75)', letterSpacing: '0.12em' }}>
               {project.index}
             </span>
             <span className="flex items-center gap-1.5"
@@ -202,7 +202,7 @@ function ProjectCard({ project, delay }: { project: typeof PROJECTS[number]; del
             {project.title}
           </h3>
           <p className="mb-5"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--color-secondary)', fontWeight: 500 }}>
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#818cf8', fontWeight: 500 }}>
             {project.subtitle}
           </p>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.88rem', lineHeight: '1.75', color: 'var(--color-text-muted)', marginBottom: '1.25rem' }}>
@@ -210,7 +210,7 @@ function ProjectCard({ project, delay }: { project: typeof PROJECTS[number]; del
           </p>
           <div className="flex flex-wrap gap-2">
             {project.tech.map(tag => (
-              <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', letterSpacing: '0.08em', color: 'rgba(0,217,255,0.55)', border: '1px solid rgba(0,217,255,0.15)', padding: '0.2rem 0.6rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
+              <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', letterSpacing: '0.08em', color: 'rgba(0,217,255,0.75)', border: '1px solid rgba(0,217,255,0.15)', padding: '0.2rem 0.6rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
                 {tag}
               </span>
             ))}
@@ -223,14 +223,14 @@ function ProjectCard({ project, delay }: { project: typeof PROJECTS[number]; del
           {/* Secondary: Case study link */}
           <Link href={`/projects/${project.slug}`}
             className="flex items-center gap-1.5 transition-all duration-200 hover:gap-2.5"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-text-muted)', letterSpacing: '0.04em' }}>
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-text-muted)', letterSpacing: '0.04em', padding: '14px 4px', margin: '-14px -4px' }}>
             <span>{project.caseStudyLabel}</span>
             <ArrowRight size={11} strokeWidth={2} />
           </Link>
           {/* Primary: CTA */}
           <a href={project.href}
             className="flex items-center gap-1.5 transition-all duration-200 hover:gap-2.5"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-accent)', padding: '14px 4px', margin: '-14px -4px' }}>
             <span>{project.cta}</span>
             <ArrowUpRight size={13} strokeWidth={2} />
           </a>

@@ -7,11 +7,11 @@ const NAV = [
   { label: 'Projects', href: '/#projects' },
   { label: 'Blog', href: '/blog' },
   { label: 'Stack', href: '/stack' },
-  { label: 'Opinions', href: '/opinions' },
+  // Opinions page exists at /opinions but is hidden from nav until it has content.
   { label: 'Contact', href: '/#contact' },
 ];
 
-export default function FooterBar() {
+export default function FooterBar({ year }: { year: number }) {
   return (
     <div
       style={{
@@ -47,19 +47,19 @@ export default function FooterBar() {
             style={{
               fontFamily: 'var(--font-mono)',
               fontSize: '0.7rem',
-              color: 'var(--color-text-muted)',
-              opacity: 0.45,
+              color: 'var(--color-text-dim)',
               letterSpacing: '0.05em',
             }}
           >
-            © {new Date().getFullYear()} Tanish Nahata
+            © {year} Tanish Nahata
           </p>
 
           <nav aria-label="Footer navigation">
             <ul
               style={{
                 display: 'flex',
-                gap: '2rem',
+                flexWrap: 'wrap',
+                gap: 'clamp(0.75rem, 3vw, 2rem)',
                 listStyle: 'none',
                 margin: 0,
                 padding: 0,
@@ -70,21 +70,23 @@ export default function FooterBar() {
                   <Link
                     href={href}
                     style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      minHeight: '44px',
+                      padding: '13px 2px',
+                      margin: '-13px -2px',
                       fontFamily: 'var(--font-body)',
                       fontSize: '0.75rem',
-                      color: 'var(--color-text-muted)',
+                      color: 'var(--color-text-dim)',
                       textDecoration: 'none',
                       letterSpacing: '0.08em',
-                      opacity: 0.55,
-                      transition: 'opacity 150ms ease, color 150ms ease',
+                      transition: 'color 150ms ease',
                     }}
                     onMouseEnter={e => {
-                      (e.currentTarget as HTMLAnchorElement).style.opacity = '1';
                       (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text)';
                     }}
                     onMouseLeave={e => {
-                      (e.currentTarget as HTMLAnchorElement).style.opacity = '0.55';
-                      (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text-muted)';
+                      (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text-dim)';
                     }}
                   >
                     {label}

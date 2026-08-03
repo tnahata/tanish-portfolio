@@ -9,7 +9,7 @@ const LINKS = [
   { label: 'Home', href: '/' },
   { label: 'Blog', href: '/blog' },
   { label: 'Stack', href: '/stack' },
-  { label: 'Opinions', href: '/opinions' },
+  // Opinions page exists at /opinions but is hidden from nav until it has content.
 ];
 
 export default function Nav() {
@@ -93,7 +93,8 @@ export default function Nav() {
             border: 'none',
             color: 'var(--color-text)',
             cursor: 'pointer',
-            padding: '4px',
+            padding: '12px',
+            margin: '-12px',
           }}
         >
           {open ? <X size={22} strokeWidth={1.5} /> : <Menu size={22} strokeWidth={1.5} />}

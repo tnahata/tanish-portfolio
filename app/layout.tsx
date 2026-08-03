@@ -36,12 +36,16 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Computed once on the server and passed down so the client never re-derives
+  // it (which could disagree with the server-rendered value at a year boundary).
+  const currentYear = new Date().getFullYear();
+
   return (
     <html lang="en">
       <body>
         <Nav />
         {children}
-        <FooterBar />
+        <FooterBar year={currentYear} />
         <Analytics />
         <UTMTracker />
       </body>

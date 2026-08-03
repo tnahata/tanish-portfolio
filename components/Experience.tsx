@@ -131,7 +131,7 @@ export default function Experience() {
                       fontSize: '0.75rem',
                       textTransform: 'uppercase',
                       letterSpacing: '0.14em',
-                      color: 'var(--color-secondary)',
+                      color: '#818cf8',
                       fontWeight: 500,
                       marginBottom: '0.75rem',
                     }}

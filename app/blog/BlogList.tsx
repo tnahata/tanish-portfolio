@@ -12,6 +12,7 @@ function formatDate(dateStr: string): string {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
@@ -42,7 +43,7 @@ function BlogCard({ post, delay }: { post: PostMeta; delay: number }) {
             style={{
               fontFamily: 'var(--font-mono)',
               fontSize: '0.65rem',
-              color: 'rgba(0,217,255,0.45)',
+              color: 'rgba(0,217,255,0.75)',
               letterSpacing: '0.12em',
               marginBottom: '1rem',
               display: 'block',

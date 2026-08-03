@@ -1,5 +1,10 @@
-
+import type { Metadata } from 'next';
 import { Mail } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'ESMON — Tanish Nahata',
+  description: 'Analytics desktop app for Indian Railways that turns raw binary journey data into filterable reports, time-series charts, and PDF exports.',
+};
 
 /* ─── Hero SVG: ESMON App Interface Schematic ──────────────────────────────── */
 function ESMONAppVisual() {
@@ -149,7 +154,7 @@ export default function ESMONPage() {
       {/* ── Hero ── */}
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-16 pb-0">
         <div className="mb-6 flex items-center gap-5">
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(0,217,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(0,217,255,0.75)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
             Indian Railway · Desktop App · Java
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(0,217,255,0.1)' }} />
@@ -211,7 +216,7 @@ export default function ESMONPage() {
 
         {/* Hard Parts */}
         <div className="mb-6 flex items-center gap-5">
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-secondary)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: '#818cf8', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             02 — The Hard Parts
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(99,102,241,0.15)' }} />
@@ -238,7 +243,7 @@ export default function ESMONPage() {
             <div key={num} className="p-7"
               style={{ backgroundColor: '#0d1230', border: '1px solid rgba(0,217,255,0.1)', borderRadius: '4px' }}>
               <div className="flex items-start gap-4 mb-4">
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(0,217,255,0.4)', letterSpacing: '0.1em', marginTop: '2px' }}>{num}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'rgba(0,217,255,0.75)', letterSpacing: '0.1em', marginTop: '2px' }}>{num}</span>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: 'var(--color-text)', lineHeight: 1.2 }}>{title}</h3>
               </div>
               <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', lineHeight: '1.75', color: 'var(--color-text-muted)' }}>{body}</p>
@@ -273,7 +278,7 @@ export default function ESMONPage() {
 
         {/* Tech stack */}
         <div className="mb-6 flex items-center gap-5">
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-secondary)', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: '#818cf8', letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600 }}>
             04 — Stack
           </span>
           <div className="flex-1 h-px" style={{ background: 'rgba(99,102,241,0.15)' }} />
@@ -281,7 +286,7 @@ export default function ESMONPage() {
 
         <div className="flex flex-wrap gap-3 mb-24">
           {['Java 21', 'JavaFX (FXML)', 'Spring Boot', 'Spring JDBC', 'SQLite', 'Apache PDFBox', 'Maven', 'jpackage', 'GitHub Actions', 'BellSoft Liberica JDK'].map(tag => (
-            <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(0,217,255,0.65)', border: '1px solid rgba(0,217,255,0.18)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
+            <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.06em', color: 'rgba(0,217,255,0.75)', border: '1px solid rgba(0,217,255,0.18)', padding: '0.35rem 0.85rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
               {tag}
             </span>
           ))}
