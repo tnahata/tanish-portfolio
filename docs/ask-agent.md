@@ -184,6 +184,16 @@ question was an attack.
 **`refusalCopy` takes no topic in v1.** Nothing in the pipeline produces a topic string, so the copy
 has to read well without one. The parameter stays for when something does.
 
+**Gate hits are logged.** A turn stopped by `checkGate` or by a lost race in `claimTurn` writes a
+row with `model` null and `locked_reason` set to the gate reason. Without it, `sign_in_required` and
+`rate_limited` are enum values that never appear in the database and free-turn conversion, the only
+reason `is_free` is kept, cannot be measured.
+
+**`runTurn` returns a stream and a completion promise.** The log write must not be fire and forget:
+a serverless function can be frozen the moment its response stream ends, so a background
+`completeTurn` may never land, losing the answer and corrupting the history rebuilt from it. The
+route hands the promise to `after()`.
+
 **`generate()` returns a stream and a verdict, not just a stream.** The marker is withheld, so an
 unanswerable turn streams nothing, and empty output is indistinguishable from a short answer. The
 caller needs a second channel to know whether to call `completeTurn` or `lockTurn`, so `generate`
