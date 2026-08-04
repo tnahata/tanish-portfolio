@@ -129,7 +129,11 @@ similarity scores and the agent starts answering wrong.
 **Ingest refuses an empty desired corpus.** `ALL` over an empty set is vacuously true, so the
 delete sweep would wipe the index.
 
-**BotID fails closed.** Package, `withBotId` in next.config, client `initBotId`, server check.
+**BotID fails closed.** Four pieces: the `botid` package, `withBotId` wrapping `next.config.ts`,
+the `<BotIdClient />` component from `botid/client` mounted in the root layout, and `checkBotId`
+from `botid/server` in the route. `checkBotId()` resolves `{ isHuman, isBot, isVerifiedBot,
+bypassed }`; a bot is rejected, and a thrown check is also a rejection, which is what "fails
+closed" means.
 
 ## Dropped, and what replaced it
 
