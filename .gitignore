@@ -43,3 +43,10 @@ tsconfig.tsbuildinfo
 
 # Claude Code scratch worktrees (embedded git repos, never part of a commit)
 /.claude/worktrees
+
+# One-off dump of the pre-rewrite ask tables, kept out of the repo
+/db/v1-legacy-backup.json
+
+# Screenshot scratch from visual verification runs; artifacts embed them as data URIs
+/fab-shots/
+/*.png
