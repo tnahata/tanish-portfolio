@@ -167,8 +167,14 @@ drifts.
 `EmptyIndexError` rather than returning an empty array, because silently refusing every question as
 off topic would look identical to a working agent facing a hostile visitor. `grade([])` still
 returns `off_topic` as a defensive floor. Both `EmptyIndexError` and `IngestConfigMismatchError`
-are operator errors, not refusals: the route surfaces them as a failure, never as a `refusal` part.
-The check runs before the question is embedded, so a broken index costs nothing.
+are operator errors, not refusals. The check runs before the question is embedded, so a broken
+index costs nothing.
+
+They surface as an `error` part inside the 200 stream, not as a non-2xx status, for the same reason
+gates do: the `status` part ships on handler entry, so headers are already sent by the time
+`prepareTurn` runs. The client-visible text is generic; the specific diagnosis goes to the server
+log. BotID is the one rejection that can still set a real status code, because it runs before any
+byte is written.
 
 **`loadHistory` returns chronological order, oldest first.** That is the order `messages` needs, so
 any other choice means a caller reverses it.
