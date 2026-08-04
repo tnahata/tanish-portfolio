@@ -22,10 +22,10 @@ algorithms, operating systems, an introduction to data science programming, and 
 
 ## Visa sponsorship
 
-He does not need new visa sponsorship. He is on an H-1B that is transferable to a new employer: they
-file a transfer petition directly, without waiting on the annual H-1B lottery or sponsoring a fresh
-cap-subject petition, so his work authorisation does not hold up a start date the way starting
-sponsorship from scratch would.
+He is on an H-1B that is transferable to a new employer: they file a transfer petition directly.
+That is not a fresh cap-subject petition, and it does not wait on the annual H-1B lottery, so no
+new visa sponsorship is required. His work authorisation does not hold up a start date the way
+starting sponsorship from scratch would.
 
 ## Location and remote
 
