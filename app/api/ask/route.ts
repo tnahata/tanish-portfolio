@@ -174,9 +174,19 @@ async function runAskTurn(writer: UIMessageStreamWriter, question: string, ident
   await streamAnswer(writer, prepared);
 }
 
+/** A failed check is treated exactly like a detected bot: same rejection, same response. */
+async function isRejectedAsBot(): Promise<boolean> {
+  try {
+    const bot = await checkBotId();
+    return bot.isBot;
+  } catch (error) {
+    console.error('BotID check failed; rejecting the request closed:', error);
+    return true;
+  }
+}
+
 export async function POST(request: Request): Promise<Response> {
-  const bot = await checkBotId();
-  if (bot.isBot) {
+  if (await isRejectedAsBot()) {
     return new Response('Forbidden', { status: 403 });
   }
 
