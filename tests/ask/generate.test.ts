@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { streamText } from 'ai';
+import { describe, expect, it, vi } from 'vitest';
 
 import { generate, withholdMarker } from '../../lib/ask/generate';
 import type { PromptParts } from '../../lib/ask/prompt';
+import type { FinishReason } from 'ai';
+
+vi.mock('ai', () => ({ streamText: vi.fn() }));
 
 const MARKER = 'XJ7QK2M9';
 
@@ -76,16 +80,74 @@ describe('withholdMarker', () => {
   });
 });
 
+type StreamTextOptions = Parameters<typeof streamText>[0];
+
+function textStreamOf(chunks: string[]): ReadableStream<string> {
+  return new ReadableStream<string>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(chunk);
+      controller.close();
+    },
+  });
+}
+
+/** Fakes just the two StreamTextResult fields generate() reads: textStream and finishReason. */
+function mockStreamText(
+  build: (options: StreamTextOptions) => { textStream: ReadableStream<string>; finishReason: Promise<FinishReason> },
+): void {
+  vi.mocked(streamText).mockImplementation(
+    ((options: StreamTextOptions) => build(options)) as unknown as typeof streamText,
+  );
+}
+
 describe('generate', () => {
-  it('streams the answer back as a ReadableStream<string>', () => {
-    const parts: PromptParts = {
-      system: 'system prompt',
-      messages: [{ role: 'user', content: 'what does he build' }],
-      marker: MARKER,
-    };
+  const parts: PromptParts = {
+    system: 'system prompt',
+    messages: [{ role: 'user', content: 'what does he build' }],
+    marker: MARKER,
+  };
 
-    const stream = generate(parts);
+  it('returns a stream and a separate outcome promise, so empty streamed output is never mistaken for a verdict', () => {
+    mockStreamText(() => ({
+      textStream: textStreamOf(['he builds agents']),
+      finishReason: Promise.resolve('stop'),
+    }));
 
-    expect(stream).toBeInstanceOf(ReadableStream);
+    const result = generate(parts);
+
+    expect(result.stream).toBeInstanceOf(ReadableStream);
+    expect(result.outcome).toBeInstanceOf(Promise);
+  });
+
+  it('rejects outcome when the underlying stream errors, instead of resolving as a successful empty answer', async () => {
+    mockStreamText((options) => {
+      const finishReason = new Promise<FinishReason>((resolve) => {
+        queueMicrotask(() => {
+          options.onError?.({ error: new Error('upstream stream failed') });
+          resolve('error');
+        });
+      });
+      return { textStream: textStreamOf([]), finishReason };
+    });
+
+    await expect(generate(parts).outcome).rejects.toBeTruthy();
+  });
+
+  it('rejects outcome when finishReason is length, instead of resolving as a successful answer', async () => {
+    mockStreamText(() => ({
+      textStream: textStreamOf(['he builds ']),
+      finishReason: Promise.resolve('length'),
+    }));
+
+    await expect(generate(parts).outcome).rejects.toBeTruthy();
+  });
+
+  it('rejects outcome when finishReason is content-filter, instead of resolving as a successful answer', async () => {
+    mockStreamText(() => ({
+      textStream: textStreamOf(['he builds ']),
+      finishReason: Promise.resolve('content-filter'),
+    }));
+
+    await expect(generate(parts).outcome).rejects.toBeTruthy();
   });
 });
