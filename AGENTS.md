@@ -1,4 +1,4 @@
-# Tanish's Portfolio — AGENTS.md
+# Tanish's Portfolio
 
 ## What this is
 
@@ -15,10 +15,30 @@ npx tsc --noEmit  # type check
 
 ## Tech stack
 
-- **Framework**: Next.js 14 (App Router), TypeScript
+- **Framework**: Next.js 16 (App Router), TypeScript
 - **Styling**: Tailwind CSS + custom CSS in `styles/globals.css`
 - **Analytics**: Vercel Analytics (`@vercel/analytics`)
 - **Deployment**: Vercel — preview on every branch push, production on `main`
+
+## Code comments
+
+**A comment longer than two lines is a defect report against the code below it.** If explaining
+something takes more than two lines, the implementation is too complicated or badly named. Fix
+that first.
+
+In order of preference:
+
+1. Change the code so no comment is needed. Rename the thing. Extract a named function or
+   constant. Restructure until the non-obvious part is obvious.
+2. If the knowledge is architectural (a decision, a rejected alternative, a hazard, a
+   measurement), it belongs in `docs/`, not in a source file. Move it there and leave a
+   one-line pointer.
+3. Only then, write a comment, and keep it to two lines.
+
+Never delete a documented hazard to satisfy the rule. Move it, or make the code say it.
+
+Do not tell an agent to "match the existing comment density". That instruction compounds every
+round and is how this codebase ended up 47% comments.
 
 ## File structure
 
@@ -59,6 +79,10 @@ public/
 - `main` is production — merges deploy automatically to Vercel
 - Feature work goes on named branches, PR to `main`
 - Branch naming: `kebab-case` describing the change (e.g. `utm-tracking`, `add-project-x`)
+- **Any PR with user-visible changes requires the `pr-visual-verification` skill**: invoke it at
+  the start of feature exploration (capture the real deployed "before") and again before opening
+  the PR. The PR is not review-ready until its before/after artifact passes the skill's
+  completion gate.
 
 ## UTM tracking
 
@@ -115,9 +139,12 @@ Located at `/projects/[slug]`. Structure for every case study:
 
 ## Ask agent implementation
 
-- Ask agent implementation work is delegated to subagents, not done inline by the orchestrating session.
-- Subagents run on Sonnet, not Opus.
-- Every subagent reads the relevant `docs/ask-agent/` spec file, plus every source file it will touch, before writing code.
-- Subagents report actual command output (test runs, type checks, script results), not a claim of success without it.
-- Spec files live in `docs/ask-agent/`; `docs/ask-agent-spec.md` is the deprecated pre-split draft and is not authoritative.
-- Verify claims against the filesystem (`db/schema.sql`, `lib/ask/`, `content/corpus/`) before writing status updates; do not report a file as landed without checking it exists.
+- Implementation is delegated to subagents, not written inline by the orchestrating session.
+- Subagents run on Sonnet. The orchestrator verifies their claims independently rather than
+  accepting a report.
+- Every subagent reads `docs/ask-agent.md` (the design) and `docs/ask-agent-build.md` (the build
+  order), plus every source file it will touch, before writing code.
+- Subagents report actual command output: test runs, type checks, measured numbers. A claim of
+  success without the output behind it is not accepted.
+- Verify against the filesystem (`db/schema.sql`, `lib/ask/`, `content/corpus/`) before writing a
+  status update. Do not report a file as landed without checking that it exists.
