@@ -6,7 +6,7 @@ const MARKER_BYTES = 24;
 /** Matches a forged ctx or q delimiter tag, open or close, any casing. */
 const FORGED_DELIMITER_PATTERN = /<\/?(ctx|q)-/i;
 
-const REFUSED_TURN_NOTE = "I didn't answer that: the context didn't cover it.";
+const REFUSED_TURN_NOTE = "I didn't answer that one.";
 
 const VOICE = `You are answering questions on Tanish Nahata's portfolio site, as a colleague who
 worked next to him, not a publicist. You volunteer what broke. When he hasn't done something, you
