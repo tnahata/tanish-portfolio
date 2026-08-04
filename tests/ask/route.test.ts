@@ -115,6 +115,15 @@ function streamFrom(chunks: string[]): ReadableStream<string> {
   });
 }
 
+function erroringStreamFrom(chunks: string[], error: Error): ReadableStream<string> {
+  return new ReadableStream<string>({
+    start(controller) {
+      for (const value of chunks) controller.enqueue(value);
+      controller.error(error);
+    },
+  });
+}
+
 /** A resolved outcome, kept as a named helper so tests read as intent rather than plumbing. */
 function outcomeOf(result: GenerationOutcome): Promise<GenerationOutcome> {
   return Promise.resolve(result);
@@ -318,8 +327,11 @@ describe('POST /api/ask: status codes and stream shape', () => {
     const outcomeError = new Error('generation did not finish cleanly: length');
     const rejectedOutcome = Promise.reject(outcomeError);
     rejectedOutcome.catch(() => {}); // mark handled now; the route's own await still sees the rejection
+    // generate() derives the stream's flush() throw and outcome's rejection from the same
+    // finishReason check, so a real truncated generation fails both together; mocking a healthy
+    // stream against a rejecting outcome tests a pairing production can never produce.
     vi.mocked(askModule.runTurn).mockReturnValue({
-      stream: streamFrom([]),
+      stream: erroringStreamFrom(['He builds ', 'agents for a liv'], outcomeError),
       outcome: rejectedOutcome,
       done: Promise.resolve(),
     });
@@ -330,6 +342,7 @@ describe('POST /api/ask: status codes and stream shape', () => {
     expect(response.status).toBe(200);
     expect(frames.some((frame) => frame.type === 'error')).toBe(true);
     expect(frames.some((frame) => frame.type === 'data-refusal')).toBe(false);
+    expect(frames.some((frame) => frame.type === 'text-end')).toBe(false);
   });
 });
 
