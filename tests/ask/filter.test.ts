@@ -32,8 +32,12 @@ describe('preFilter: private', () => {
     expect(preFilter('What is his home address?')).toBe('private');
   });
 
-  it('flags a visa status question', () => {
-    expect(preFilter('What is his visa status right now?')).toBe('private');
+  it('lets a visa question through because the corpus answers it', () => {
+    expect(preFilter('What is his visa status right now?')).toBeNull();
+  });
+
+  it('flags a salary question the corpus does not substantively answer', () => {
+    expect(preFilter('What was his salary at FedEx?')).toBe('private');
   });
 
   it('flags a health question', () => {
