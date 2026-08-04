@@ -444,6 +444,36 @@ describe('runTurn', () => {
     expect(logModule.completeTurn).not.toHaveBeenCalled();
   });
 
+  /**
+   * A rejected outcome and a rejected write both end up inside the same .then().catch() chain,
+   * so only a test built on a failing write, not a failing outcome, can tell them apart.
+   */
+  it('rejects done when completeTurn itself fails to write the answer', async () => {
+    const turn = readyTurn();
+    const outcome = outcomeOf({ text: 'He builds agents.', unanswerable: false });
+    vi.mocked(generateModule.generate).mockReturnValue({ stream: streamFrom(['He builds agents.']), outcome });
+    const writeError = new Error('connection terminated unexpectedly');
+    vi.mocked(logModule.completeTurn).mockRejectedValue(writeError);
+
+    const { stream, done } = runTurn(turn);
+    await drain(stream);
+
+    await expect(done).rejects.toThrow(writeError);
+  });
+
+  it('rejects done when lockTurn itself fails to write the unanswerable lock', async () => {
+    const turn = readyTurn();
+    const outcome = outcomeOf({ text: '', unanswerable: true });
+    vi.mocked(generateModule.generate).mockReturnValue({ stream: streamFrom([]), outcome });
+    const writeError = new Error('connection terminated unexpectedly');
+    vi.mocked(logModule.lockTurn).mockRejectedValue(writeError);
+
+    const { stream, done } = runTurn(turn);
+    await drain(stream);
+
+    await expect(done).rejects.toThrow(writeError);
+  });
+
   it('does not resolve done until the completeTurn write has actually settled', async () => {
     const turn = readyTurn();
     const outcome = outcomeOf({ text: 'He builds agents.', unanswerable: false });
