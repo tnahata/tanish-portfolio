@@ -9,8 +9,10 @@ import { POST } from '../../app/api/ask/route';
 import * as askModule from '@/lib/ask/ask';
 import type { GatedTurn, ReadyTurn, RefusedTurn } from '@/lib/ask/ask';
 import { ANON_COOKIE_NAME, EMBED_DIMS, EMBED_MODEL, MAX_QUESTION_CHARS } from '@/lib/ask/config';
+import type { GenerationOutcome } from '@/lib/ask/generate';
 import type { Gated } from '@/lib/ask/log';
 import type { PromptParts } from '@/lib/ask/prompt';
+import { refusalCopy } from '@/lib/ask/refusals';
 import { EmptyIndexError, IngestConfigMismatchError } from '@/lib/ask/retrieve';
 import type { ChunkMetadata, RetrievedChunk } from '@/lib/ask/types';
 
@@ -111,6 +113,11 @@ function streamFrom(chunks: string[]): ReadableStream<string> {
       controller.close();
     },
   });
+}
+
+/** A resolved outcome, kept as a named helper so tests read as intent rather than plumbing. */
+function outcomeOf(result: GenerationOutcome): Promise<GenerationOutcome> {
+  return Promise.resolve(result);
 }
 
 interface StreamFrame {
@@ -237,6 +244,7 @@ describe('POST /api/ask: status codes and stream shape', () => {
     vi.mocked(askModule.prepareTurn).mockResolvedValue(readyTurn());
     vi.mocked(askModule.runTurn).mockReturnValue({
       stream: streamFrom(['He builds agents for a living.']),
+      outcome: outcomeOf({ text: 'He builds agents for a living.', unanswerable: false }),
       done: Promise.resolve(),
     });
 
@@ -250,17 +258,30 @@ describe('POST /api/ask: status codes and stream shape', () => {
     expect(answerIndex).toBeGreaterThan(statusIndex);
   });
 
-  it('streams the answer as ordered text-delta frames that reassemble to the full answer', async () => {
+  it('streams a normal answer as text-start, its deltas in order, then text-end', async () => {
     arrangeHuman();
     arrangeAnonymous();
     vi.mocked(askModule.prepareTurn).mockResolvedValue(readyTurn());
     vi.mocked(askModule.runTurn).mockReturnValue({
       stream: streamFrom(['He builds ', 'agents for a living.']),
+      outcome: outcomeOf({ text: 'He builds agents for a living.', unanswerable: false }),
       done: Promise.resolve(),
     });
 
     const response = await POST(askRequest({ question: 'What does he build?' }));
     const frames = parseSseFrames(await response.text());
+    const types = frames.map((frame) => frame.type);
+
+    const startIndex = types.indexOf('text-start');
+    const endIndex = types.indexOf('text-end');
+    const deltaIndexes = types
+      .map((type, index) => (type === 'text-delta' ? index : -1))
+      .filter((index) => index !== -1);
+
+    expect(startIndex).toBeGreaterThanOrEqual(0);
+    expect(endIndex).toBeGreaterThan(startIndex);
+    expect(deltaIndexes.every((index) => index > startIndex && index < endIndex)).toBe(true);
+
     const answer = frames
       .filter((frame) => frame.type === 'text-delta')
       .map((frame) => frame.delta)
@@ -268,6 +289,47 @@ describe('POST /api/ask: status codes and stream shape', () => {
 
     expect(response.status).toBe(200);
     expect(answer).toBe('He builds agents for a living.');
+  });
+
+  it('renders an unanswerable turn as a refusal part with no text-start or text-end, never a blank bubble', async () => {
+    arrangeHuman();
+    arrangeAnonymous();
+    vi.mocked(askModule.prepareTurn).mockResolvedValue(readyTurn());
+    vi.mocked(askModule.runTurn).mockReturnValue({
+      stream: streamFrom([]),
+      outcome: outcomeOf({ text: '', unanswerable: true }),
+      done: Promise.resolve(),
+    });
+
+    const response = await POST(askRequest({ question: 'What is his salary at ESMON?' }));
+    const frames = parseSseFrames(await response.text());
+    const refusal = frames.find((frame) => frame.type === 'data-refusal');
+
+    expect(response.status).toBe(200);
+    expect(refusal?.data).toEqual({ reason: 'unanswerable', text: refusalCopy('unanswerable') });
+    expect(frames.some((frame) => frame.type === 'text-start')).toBe(false);
+    expect(frames.some((frame) => frame.type === 'text-end')).toBe(false);
+  });
+
+  it('surfaces a rejected outcome as an error part, never a refusal part', async () => {
+    arrangeHuman();
+    arrangeAnonymous();
+    vi.mocked(askModule.prepareTurn).mockResolvedValue(readyTurn());
+    const outcomeError = new Error('generation did not finish cleanly: length');
+    const rejectedOutcome = Promise.reject(outcomeError);
+    rejectedOutcome.catch(() => {}); // mark handled now; the route's own await still sees the rejection
+    vi.mocked(askModule.runTurn).mockReturnValue({
+      stream: streamFrom([]),
+      outcome: rejectedOutcome,
+      done: Promise.resolve(),
+    });
+
+    const response = await POST(askRequest({ question: 'What does he build?' }));
+    const frames = parseSseFrames(await response.text());
+
+    expect(response.status).toBe(200);
+    expect(frames.some((frame) => frame.type === 'error')).toBe(true);
+    expect(frames.some((frame) => frame.type === 'data-refusal')).toBe(false);
   });
 });
 
@@ -354,6 +416,7 @@ describe('POST /api/ask: completion and failure', () => {
     const donePromise = Promise.resolve();
     vi.mocked(askModule.runTurn).mockReturnValue({
       stream: streamFrom(['He builds agents.']),
+      outcome: outcomeOf({ text: 'He builds agents.', unanswerable: false }),
       done: donePromise,
     });
 
