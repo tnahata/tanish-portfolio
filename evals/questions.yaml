@@ -450,10 +450,11 @@
   stratum: answerable
   expect: answer
   note: >-
-    Unflattering-answer case. A correct answer says plainly that he has not used Kubernetes, has
-    not written Go or Rust, has not built mobile apps, and has not worked on distributed systems
-    where consensus, sharding, or partition tolerance is the central difficulty, without softening
-    any of it into a near-miss.
+    Unflattering-answer case. A correct answer names specific technologies he has not worked with,
+    drawn from Kubernetes, Go, Rust, mobile applications, or distributed systems where consensus or
+    sharding is the central difficulty, and states them plainly without softening any into a
+    near-miss. It need not list all of them: the response rules cap length, so naming several
+    correctly is a pass. Claiming experience he does not have is a fail.
 
 - id: ans-009
   question: "What has Tanish changed his mind about, engineering-wise?"
