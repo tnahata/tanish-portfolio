@@ -57,8 +57,9 @@ const PHONE_NUMBER =
 /** Visa status and transferability are disclosed in faq.md; only immigration beyond that is private. */
 const IMMIGRATION = /\bimmigration\b/i;
 
+/** Phrase-matched so it never fires on "health check"/"healthcheck" endpoint questions. */
 const HEALTH =
-  /\b(?:his|tanish(?:'|’)?s)\s+health\b|\bmental\s+health\b|\bmedical\s+(?:condition|history|issue)\b|\bdisab(?:led|ility)\b|\bdiagnos(?:is|ed)\b|\billness\b/i;
+  /\bhealth\s+condition(?:s)?\b|\b(?:good|poor|bad|declining|failing)\s+health\b|\bmental\s+health\b|\bmedical\s+(?:condition|history|issue)s?\b|\bdisab(?:led|ility)\b|\bdiagnos(?:is|ed)\b|\billness\b|\b(?:his|tanish(?:'|’)?s)\s+health\b/i;
 
 const FAMILY =
   /\b(?:his|tanish(?:'|’)?s)\s+(?:family|kids|children|parents|siblings?)\b|\bis\s+(?:he|tanish)\s+married\b|\b(?:his\s+)?(?:wife|husband|spouse|girlfriend|boyfriend)\b/i;
