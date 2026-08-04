@@ -5,24 +5,27 @@ type PreFilterReason = Extract<LockedReason, 'injection' | 'private'>;
 /** The context/question fence shapes: `<ctx-`, `</ctx-`, `<q-`, `</q-`, any case. */
 const FORGED_DELIMITER = /<\/?(?:ctx|q)-/i;
 
-const INSTRUCTION_OVERRIDE =
-  /\b(?:ignore|disregard|forget)\b[\s\S]{0,40}\b(?:previous|prior|above|earlier|all)\b[\s\S]{0,20}\binstructions?\b/i;
+/** The qualifier (previous/above/...) can land on either side of "instructions", so only the verb-plus-noun pair is required. */
+const INSTRUCTION_OVERRIDE = /\b(?:ignore|disregard|forget)\b[\s\S]{0,40}\binstructions?\b/i;
 
-/** Direct references to the system prompt or the model's own instructions. */
-const PROMPT_OR_INSTRUCTION_MENTION =
-  /\bsystem\s*prompt\b|\byour\s+(?:system\s+)?prompt\b|\byour\s+instructions\b/i;
+/** Second person ("your") targets the agent itself; third person is a topic question, not an attack. */
+const PROMPT_OR_INSTRUCTION_MENTION = /\byour\s+(?:system\s+)?prompt\b|\byour\s+instructions\b/i;
 
 const REPEAT_CONTEXT_ABOVE =
   /\b(?:reveal|repeat|print|output|show|leak|summarize|paraphrase)\b[\s\S]{0,40}\b(?:the\s+)?(?:text|prompt|everything|context)\s+above\b/i;
 
-const MODE_REASSIGNMENT = /\b(?:developer|debug|admin|maintenance|god|dan|jailbreak)\s+mode\b/i;
+/** The directive verb is the signal; "does X have a debug mode" is a product question. */
+const MODE_REASSIGNMENT =
+  /\b(?:enter|activate|switch\s+(?:to|into)|go\s+into|turn\s+on)\s+(?:developer|debug|admin|maintenance|god|dan|jailbreak)\s+mode\b|\byou\s+are\s+now\s+in\s+(?:developer|debug|admin|maintenance|god|dan|jailbreak)\s+mode\b/i;
 
 /** Instructing the agent to speak as Tanish rather than describe him. */
 const PERSONA_SWAP =
   /\b(?:pretend|act\s+as|roleplay\s+as|you\s+are\s+now|become)\b[\s\S]{0,30}\btanish\b/i;
 
-const FALSE_AUTHORITY = /\bauthorized\s+to\s+(?:run|perform|access|bypass|override)\b/i;
-const SECURITY_AUDIT_PRETEXT = /\bsecurity\s+audit\b/i;
+/** A claim of authority OVER the agent, not a third-person question about Tanish's own work history. */
+const FALSE_AUTHORITY =
+  /\bauthoriz(?:e|ed)\s+you\s+to\b|\bi\s+am\s+(?:the\s+)?(?:site\s+owner|the\s+developer|an?\s+admin(?:istrator)?)\b/i;
+
 const CONTEXT_EXFILTRATION = /\boutput\s+the\s+(?:full\s+)?(?:retrieved\s+)?context\b/i;
 
 /** Pressuring the agent to answer anyway instead of refusing. */
@@ -39,7 +42,6 @@ const INJECTION_PATTERNS: readonly RegExp[] = [
   MODE_REASSIGNMENT,
   PERSONA_SWAP,
   FALSE_AUTHORITY,
-  SECURITY_AUDIT_PRETEXT,
   CONTEXT_EXFILTRATION,
   REFUSAL_OVERRIDE,
   RESTRICTION_BYPASS,
