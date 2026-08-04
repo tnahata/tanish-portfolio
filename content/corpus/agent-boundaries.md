@@ -7,8 +7,8 @@ route: null
 
 <!-- This file makes claims about the SYSTEM rather than about a person, so it goes stale when the
      system changes. Re-read it at every phase boundary, and specifically before launch, against
-     docs/ask-agent/07-identity-gate.md (retention, what is stored) and
-     docs/ask-agent/09-gap-queue.md (what gets published).
+     docs/ask-agent.md (retention, gates, what gets logged) and db/schema.sql (the two tables and
+     exactly what columns exist).
 
      The "What is collected" section below is the one that must not drift. An agent that misstates
      its own data handling is worse than one that says nothing. -->
@@ -64,32 +64,27 @@ system. It has no tools and no access, so the practical worst case is that it de
 
 ## When it does not know
 
-When the corpus is close to a question but does not actually answer it, the agent will say so and
-offer to send the question to Tanish.
+When a question falls outside the corpus, or the corpus only brushes against it without actually
+answering it, the agent declines and says why instead of guessing. That is the ordinary shape of
+"I don't know" here, not an edge case.
 
-If it is sent, he reads it and may write an answer. Published answers become part of the corpus, so
-the next person asking the same thing gets a real answer instead of a refusal.
+Every refusal is logged with its reason. That is what lets Tanish find the real gaps later and go
+write the missing answer himself. It is not a queue a visitor adds to directly, and nothing here
+publishes questions, answers, or a refusal rate.
 
-What gets published is the answer only, never the question as it was typed. If he cannot answer
-publicly, the question stays unanswered rather than being answered vaguely.
-
-The refusal rate is published alongside the questions, because a system that refuses is only
-trustworthy if you can see how often it does.
+If you want an answer to something the agent declined, email it to him directly.
 
 ## What is collected
 
 Each question, the answer, which corpus documents were retrieved, and what the request cost. That
-record is what makes the agent auditable, and it is the same reason its retrieval is shown while it
-works.
+record is what makes the agent auditable.
 
-Question and answer text is deleted after 90 days. The metrics that remain carry no content.
+Question and answer text is retained, not deleted on a timer. Deleting a specific record is by
+email request, and Tanish can act on that by hand.
 
-Signing in with Google records an identity: a Google account identifier, the verified email address,
-and a name. That happens only past the first generated answer, and it exists so usage and cost
-attach to a person rather than to a browser. Refusals require no sign-in and are not limited.
-
-Deletion of stored data is by email request, and the privacy page names every third-party service
-involved.
+Signing in ties a question to an account instead of a browser, through this site's identity
+provider. That happens only past the first generated answer, and it exists so usage and cost
+attach to a person. Refusals require no sign-in and are not limited.
 
 ## How to reach Tanish directly
 
