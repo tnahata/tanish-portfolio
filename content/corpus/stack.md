@@ -69,7 +69,7 @@ nothing else on top of it, for exactly that reason.
 Docker, Vercel, PostgreSQL, Redis, MongoDB, AWS.
 
 Postgres is the default. Both agent projects use it, and on this site it holds the corpus, the
-embeddings, rate limits, and spend accounting in one database.
+embeddings, and the per-turn log that rate limiting counts against, in one database.
 
 MongoDB is in HybridFit because the workout schema is genuinely heterogeneous and a document model
 fits that better than a relational one. It is a considered choice for that problem, not a general
@@ -78,10 +78,11 @@ preference.
 Redis is the interesting entry, because he has argued both directions on it. At FedEx he introduced
 it as a coordination layer, chosen for expiring keys and keyspace notifications rather than for
 speed, and it removed an eight second hardcoded delay. On this site's agent he removed Redis from
-the design, moving rate limiting, login nonces, and spend reservation into Postgres, because what he
-needed there was transactional guarantees across counters and a second vendor was not worth it. The
-general rule he takes from both: choose infrastructure for the guarantee it gives you, and be
-willing to reach the opposite conclusion when the guarantee you need changes.
+the design entirely and does rate limiting as a turn count plus a claim row in Postgres, because
+what he needed there was transactional guarantees across counters and a second vendor was not worth
+it. Sign-in never needed a home-grown nonce system in the first place: that is Clerk's job, not the
+database's. The general rule he takes from both: choose infrastructure for the guarantee it gives
+you, and be willing to reach the opposite conclusion when the guarantee you need changes.
 
 AWS is the newest entry, backed by a Certified Cloud Practitioner certification rather than by
 production infrastructure he has run there himself. Worth stating plainly rather than letting the

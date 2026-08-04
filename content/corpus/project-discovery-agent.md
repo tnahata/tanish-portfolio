@@ -59,10 +59,12 @@ before the call is what makes a ceiling real. Writing the audit entry before rat
 call is the same instinct: the log has to survive the failure it exists to explain.
 
 This is the second time he has solved the same problem, and he solved it differently the second
-time. The agent on this portfolio reserves an estimated cost before generating and reconciles
-against the actual afterwards, in a single database transaction, so two concurrent requests cannot
-both pass a cap that only one of them fits under. The general principle he takes from both: an agent
-that spends money needs a hard ceiling enforced structurally, not a budget someone watches.
+time. The agent on this portfolio counts a person's paid turns for the day and inserts a claim row
+before generation starts, so a request past the daily limit is stopped before it costs anything.
+It is not fully atomic: a burst of concurrent requests can still slip one past the count, and the
+model vendor's own spend cap is the real ceiling underneath. The general principle he takes from
+both: an agent that spends money needs a hard ceiling enforced structurally, not a budget someone
+watches.
 
 ## Style grounding
 

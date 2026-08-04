@@ -76,12 +76,17 @@ most facts live in exactly one file, and the rule refused questions the corpus a
 sentence while passing questions it did not answer at all. Agreement between two documents was never
 independent evidence in the first place, since the same person wrote both.
 
-Questions it cannot answer are captured. He answers them, and published answers become part of the
-corpus, so the blind spots turn into content rather than disappearing.
+Questions it cannot answer are logged with the reason, not captured through anything a visitor
+clicks. There is no ask-him button and no publish step. Tanish queries the log for the questions
+that keep recurring and decides by hand what is worth writing into the corpus. The blind spots are
+visible to him; they do not turn into content on their own.
 
-Three details are visible while it works: what it searched, what it found, and how strongly it
-judged the evidence, streamed before the answer begins. That is the part he would defend hardest.
-An assistant that shows its retrieval can be checked; one that only shows prose has to be trusted.
+What streams before the answer is a status update, not a trace: no panel showing what it searched,
+what it found, or how strongly it scored the evidence. That data is not thrown away: every turn
+logs which chunks were retrieved. It is just never shown to the person asking. The half of the
+pitch that survived is the stronger half anyway: an agent that refuses out loud with a reason,
+instead of guessing past a thin match, is more checkable than one that displays its retrieval and
+answers regardless.
 
 ## Stack
 
@@ -92,9 +97,11 @@ The agent adds Postgres on Neon with pgvector for the corpus and its embeddings,
 embeddings, Claude for generation, and Clerk for sign-in, which is required after the first answer
 so every generated answer has a name attached to it.
 
-Four tables, not ten. An earlier version had a table for rate counters, one for login nonces, one
+Two tables, not ten. An earlier version had a table for rate counters, one for login nonces, one
 for spend reservations, and a three-role database split to keep the runtime role away from the
-corpus. All of it went. Rate limiting is one atomic UPDATE, sign-in is Clerk's problem, spend has a
-cap set in the vendor console, and nothing at runtime writes to the corpus at all: only the ingest
-script does, so there is no path left to guard. What remains is an append-only audit log written
-before each action rather than after, so a turn that dies halfway through is still findable.
+corpus. All of it went. Rate limiting is a count of a person's logged turns plus a claim row
+inserted before generation starts, sign-in is Clerk's problem, spend has a cap set in the vendor
+console, and nothing at runtime writes to the corpus at all: only the ingest script does, so there
+is no path left to guard. What remains is one row per turn: inserted before generation to claim it,
+updated with the answer or the refusal reason when the turn ends, so a turn that dies halfway
+through is still findable.
