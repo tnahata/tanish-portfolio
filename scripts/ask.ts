@@ -61,8 +61,15 @@ async function main(): Promise<void> {
 
   console.log('ready: streaming answer');
   const { stream, done } = runTurn(prepared);
+  done.catch(() => {}); // mark handled now; the await below still sees the rejection
   await printStream(stream);
-  await done;
+
+  try {
+    await done;
+  } catch (error) {
+    console.error(`turn write failed after streaming: ${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 1;
+  }
 }
 
 main()

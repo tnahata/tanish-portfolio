@@ -98,23 +98,23 @@ export async function prepareTurn(input: {
 }
 
 /**
- * Generates against a prepared turn and writes the outcome. Emits answer text, or resolves the
- * turn as `unanswerable` when the marker fires. `done` resolves once that write has committed, so
- * a caller that must close a resource (a pool, a serverless invocation) can await it instead of
- * racing a fire-and-forget write. `done` never rejects: a stream error or truncated finish is
- * already handled by leaving the row claimed with no answer and no locked reason, not by throwing.
+ * Generates against a prepared turn and writes the outcome. `done` resolves once that write has
+ * committed. A rejected `outcome` (stream error, truncated finish) still resolves `done`, since
+ * that row is already left claimed with no answer and no locked reason on purpose. A write that
+ * itself fails rejects `done`, so losing an already-streamed answer is never silent.
  */
 export function runTurn(turn: ReadyTurn): { stream: ReadableStream<string>; done: Promise<void> } {
   const { stream, outcome } = generate(turn.prompt);
 
   const done = outcome
+    .catch(() => null)
     .then((result) => {
+      if (result === null) return;
       if (result.unanswerable) {
         return lockTurn({ turnId: turn.turnId, reason: 'unanswerable', retrieved: turn.retrieved });
       }
       return completeTurn({ turnId: turn.turnId, answer: result.text, retrieved: turn.retrieved });
-    })
-    .catch(() => {});
+    });
 
   return { stream, done };
 }
