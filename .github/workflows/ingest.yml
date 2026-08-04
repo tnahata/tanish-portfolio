@@ -1,0 +1,74 @@
+name: Ingest pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - 'content/corpus/**'
+      - 'lib/ask/corpus.ts'
+      - 'lib/ask/embed.ts'
+      - 'lib/ask/ingest.ts'
+      - 'lib/ask/config.ts'
+      - 'db/schema.sql'
+
+jobs:
+  # Runs on every PR, including forks, with no secrets in scope. Never pull_request_target: this
+  # job executes PR-authored code, and pull_request_target would hand it production credentials.
+  validate-corpus:
+    if: github.event_name == 'pull_request'
+    name: Corpus loads, chunks, and produces unique ids with no database or API key
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Load, chunk, and validate content/corpus
+        run: |
+          cat <<'SCRIPT' > "$RUNNER_TEMP/validate-corpus.mjs"
+          import { pathToFileURL } from 'node:url';
+          import { join } from 'node:path';
+
+          const workspace = process.env.GITHUB_WORKSPACE;
+          const corpusModuleUrl = pathToFileURL(join(workspace, 'lib/ask/corpus.ts')).href;
+          const { loadCorpus } = await import(corpusModuleUrl);
+
+          const chunks = loadCorpus(join(workspace, 'content/corpus'));
+          const ids = new Set(chunks.map((chunk) => chunk.id));
+
+          if (ids.size !== chunks.length) {
+            throw new Error(`duplicate chunk ids: ${chunks.length} chunks, ${ids.size} unique ids`);
+          }
+
+          console.log(`corpus ok: ${chunks.length} chunks, ${ids.size} unique ids, frontmatter parsed`);
+          SCRIPT
+          npx tsx "$RUNNER_TEMP/validate-corpus.mjs"
+
+  # Runs only on a push to main that touches the corpus or the code that determines chunking and
+  # embedding, since a chunking change with no corpus change still changes every chunk id.
+  apply-ingest:
+    if: github.event_name == 'push'
+    name: Reconcile the production index against content/corpus
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run npm run ingest against production
+        run: npm run ingest
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

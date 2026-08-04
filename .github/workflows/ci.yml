@@ -5,8 +5,23 @@ on:
     branches: [main]
 
 jobs:
-  lint-typecheck-build:
+  lint-typecheck-build-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
 
@@ -25,3 +40,22 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Each ask test file applies db/schema.sql inside its own private schema, and that file's
+      # own "create extension if not exists vector" would otherwise install the extension inside
+      # whichever private schema runs first, so it gets dropped when that schema is torn down.
+      # Creating it here, in the default schema, before any test file runs, makes every later
+      # "if not exists" a no-op instead.
+      - name: Create the vector extension once, before the suite runs
+        run: |
+          node -e "
+            const { Client } = require('pg');
+            const client = new Client({ connectionString: process.env.DATABASE_URL });
+            client.connect()
+              .then(() => client.query('create extension if not exists vector'))
+              .then(() => client.end())
+              .catch((err) => { console.error(err); process.exit(1); });
+          "
+
+      - name: Test
+        run: npm test
