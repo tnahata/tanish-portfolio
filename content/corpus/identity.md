@@ -60,10 +60,10 @@ and exact start timing are covered in the FAQ.
 
 ## Where to find him
 
-- Email: tanishnahata2002@gmail.com
-- GitHub: https://github.com/tnahata
-- LinkedIn: https://www.linkedin.com/in/tanish-nahata
-- X: https://x.com/NahataTanish
+Four ways to reach or follow him, nothing more: email for a direct reply
+(tanishnahata2002@gmail.com), a GitHub account for repositories (https://github.com/tnahata), a
+LinkedIn account for connections (https://www.linkedin.com/in/tanish-nahata), and an X account for
+posts (https://x.com/NahataTanish).
 
 ## What he is looking for
 
