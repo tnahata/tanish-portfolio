@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
+import { ClerkProvider } from '@clerk/nextjs';
+import { BotIdClient } from 'botid/client';
 import UTMTracker from '@/components/UTMTracker';
 import Nav from '@/components/Nav';
 import FooterBar from '@/components/FooterBar';
 import './globals.css';
+
+const PROTECTED_ROUTES = [{ path: '/api/ask', method: 'POST' }];
 
 export const metadata: Metadata = {
   title: 'Tanish Nahata — Software Engineer',
@@ -39,11 +43,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Nav />
-        {children}
-        <FooterBar />
-        <Analytics />
-        <UTMTracker />
+        <ClerkProvider>
+          <BotIdClient protect={PROTECTED_ROUTES} />
+          <Nav />
+          {children}
+          <FooterBar />
+          <Analytics />
+          <UTMTracker />
+        </ClerkProvider>
       </body>
     </html>
   );
