@@ -10,6 +10,7 @@ import type { ReadyTurn } from '@/lib/ask/ask';
 import { prepareTurn, runTurn } from '@/lib/ask/ask';
 import { ANON_COOKIE_MAX_AGE_SECONDS, ANON_COOKIE_NAME, MAX_QUESTION_CHARS } from '@/lib/ask/config';
 import type { Gated } from '@/lib/ask/log';
+import { refusalCopy } from '@/lib/ask/refusals';
 import { EmptyIndexError, IngestConfigMismatchError } from '@/lib/ask/retrieve';
 import type { Identity, LockedReason } from '@/lib/ask/types';
 
@@ -126,9 +127,14 @@ function withAnonCookie(response: Response, mintedAnonId: string | null): Respon
  * write to `after()` so it completes even if the function is frozen the moment the stream ends.
  * `text-start` opens on the first token rather than up front, so a turn that streams nothing
  * (the withheld-marker case) emits no text parts at all instead of an empty pair.
+ *
+ * `outcome` is only awaited after the answer stream finishes, so a slow model still streams live
+ * instead of being buffered. A stream error or truncated finish already surfaces as an `error`
+ * part by throwing out of the `reader.read()` loop above; `outcome.catch(() => null)` here just
+ * keeps that same rejection from resurfacing as an unhandled rejection or a spurious refusal.
  */
 async function streamAnswer(writer: UIMessageStreamWriter, turn: ReadyTurn): Promise<void> {
-  const { stream, done } = runTurn(turn);
+  const { stream, outcome, done } = runTurn(turn);
   after(done);
 
   const textId = randomUUID();
@@ -147,6 +153,11 @@ async function streamAnswer(writer: UIMessageStreamWriter, turn: ReadyTurn): Pro
 
   if (opened) {
     writer.write({ type: 'text-end', id: textId });
+  }
+
+  const result = await outcome.catch(() => null);
+  if (result?.unanswerable) {
+    writer.write(refusalChunk('unanswerable', refusalCopy('unanswerable')));
   }
 }
 
