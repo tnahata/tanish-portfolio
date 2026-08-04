@@ -69,7 +69,7 @@ generation to claim it, updated with the answer or the lock reason when the turn
                                         anonymous, >= 1  -> gate sign_in_required
                                         signed in, >= 20 today -> gate rate_limited
 5  embed question                     first paid call, only after the gate passes
-6  retrieve top 3, cosine
+6  retrieve top 8, cosine
 7  threshold                          best < 0.25 -> off_topic
                                       best < 0.40 -> no_grounding      (log row, model null)
 8  insert claim row                   model set here, before generating
@@ -98,10 +98,17 @@ group by question order by count(*) desc;
 answer path. A branded `StrongGrounding` value is the argument type of `generate()`, so an
 ungrounded generation does not typecheck.
 
-**`TOP_K = 3` is a ceiling, not the context size.** The verdict comes from the top score; the
-context is every retrieved chunk at or above `T_STRONG`. A chunk at 0.28 in a query whose best is
-0.55 is noise and never reaches the prompt. Sections are small (858 chars average), so broad
-questions are the ones a low ceiling can starve; phase 2 measures that against the eval set.
+**`TOP_K = 8` is a ceiling, not the context size.** The verdict comes from the top score; the
+context is every retrieved chunk at or above `T_STRONG`, so a low scorer riding along on a good
+query never reaches the prompt.
+
+It was 3, and measurement moved it. "What broke while building ESMON?", one of the default starter
+chips, retrieved three chunks that all describe what ESMON *is*, scored 0.5690 strong, and came
+back unanswerable with an empty stream. The two chunks that answer it,
+`disclosure-esmon#two-engineering-problems-worth-naming` at 0.4645 and
+`disclosure-esmon#how-the-parser-handles-bad-data` at 0.4544, were ranks 4 and 5. Both clear
+`T_STRONG`; the ceiling severed them. At k=8 the same question answers correctly and every refusal
+path is unchanged. Sections average 858 chars, so a broad question needs several of them.
 
 **Answerability is judged by the model.** Similarity measures aboutness, not containment: "what is
 his salary at ESMON" scores high against the ESMON chunks and none of them answer it. The model
@@ -260,7 +267,7 @@ so a 429 would render a generic error instead of the inline sign-in interstitial
 
 ## Config
 
-One `lib/ask/config.ts`, code constants, never env: embed model and dims, chat model, `TOP_K = 3`,
+One `lib/ask/config.ts`, code constants, never env: embed model and dims, chat model, `TOP_K = 8`,
 `T_STRONG = 0.40`, `T_FLOOR = 0.25`, daily limit 20, free turns 1, history turns 3 and char cap.
 A threshold that differs between environments is unreproducible.
 

@@ -9,7 +9,7 @@ export const EMBED_DIMS = 1024;
 export const CHAT_MODEL = 'claude-sonnet-5';
 
 /** Retrieval ceiling. Context is filtered by T_STRONG, so this is not the context size. */
-export const TOP_K = 3;
+export const TOP_K = 8;
 
 /** At or above T_STRONG: generate. Below T_FLOOR: off topic. Between: related but too thin. */
 export const T_STRONG = 0.4;
