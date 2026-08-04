@@ -8,17 +8,17 @@ import { ArrowUpRight, ArrowRight } from 'lucide-react';
 const PROJECTS = [
   {
     index: '01',
-    title: 'Discovery Agent',
-    subtitle: 'AI-Powered Twitter Discovery & Engagement Agent',
+    title: 'Noiseless',
+    subtitle: 'AI Agent for High-Signal Discovery on X',
     description:
-      'Personal productivity agent that searches Twitter for conversations worth joining, drafts replies that match your voice, and routes everything through Slack for approval before posting. The hard parts: orchestrating a multi-stage pipeline that pauses mid-execution for human decisions, enforcing cost controls before every external call, and teaching the model to write like you without claiming expertise you don\'t have.',
-    tech: ['Python 3.12', 'LangGraph', 'Slack Bolt', 'Claude Haiku', 'PostgreSQL', 'pgvector', 'Docker'],
-    status: 'Shipping',
-    statusColor: '#6366f1',
-    href: 'mailto:tanishnahata2002@gmail.com?subject=Discovery%20Agent',
-    cta: 'Ask me about it',
+      'AI agent that profiles your expertise, searches X daily for conversations worth joining, and delivers ranked results to Slack. Every interaction feeds back into ranking. The hard parts: scheduling a daily pipeline across users and timezones, enforcing per-user cost controls on every external call, and building accurate expertise profiles from noisy, cross-referenced sources.',
+    tech: ['Python', 'FastAPI', 'LangGraph', 'Claude', 'PostgreSQL', 'Supabase', 'Railway'],
+    status: 'Live',
+    statusColor: '#22c55e',
+    href: 'https://discoveryagent-production.up.railway.app/',
+    cta: 'Try It',
     caseStudyLabel: 'View Case Study',
-    slug: 'discovery-agent',
+    slug: 'noiseless',
     visual: 'network' as const,
     featured: true,
   },
@@ -28,8 +28,8 @@ const PROJECTS = [
     subtitle: 'Indian Railway Analytics Desktop App',
     description:
       'Analytics desktop app for Indian Railways that turns raw binary journey data into filterable reports, time-series charts, and multi-section PDF exports. The hard parts: parsing undocumented binary formats, keeping filter state consistent across tabs without coupling the controllers, and rendering charts offscreen to prevent JavaFX deadlocks during PDF generation.',
-    tech: ['Java 21', 'JavaFX', 'Spring Boot', 'SQLite', 'Apache PDFBox', 'Maven', 'jpackage'],
-    status: 'Finishing',
+    tech: ['Java 17', 'JavaFX', 'Spring Boot', 'SQLite', 'Apache PDFBox', 'Maven', 'jpackage'],
+    status: 'Beta',
     statusColor: '#00d9ff',
     href: 'mailto:tanishnahata2002@gmail.com?subject=ESMON%20Project',
     cta: 'Ask me about it',
@@ -187,7 +187,7 @@ function ProjectCard({ project, delay }: { project: typeof PROJECTS[number]; del
         {/* Content — links to case study */}
         <Link href={`/projects/${project.slug}`} className="block flex-1 p-7 lg:p-8 pb-5">
           <div className="flex items-center justify-between mb-5">
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'rgba(0,217,255,0.45)', letterSpacing: '0.12em' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'rgba(0,217,255,0.75)', letterSpacing: '0.12em' }}>
               {project.index}
             </span>
             <span className="flex items-center gap-1.5"
@@ -202,7 +202,7 @@ function ProjectCard({ project, delay }: { project: typeof PROJECTS[number]; del
             {project.title}
           </h3>
           <p className="mb-5"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--color-secondary)', fontWeight: 500 }}>
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#818cf8', fontWeight: 500 }}>
             {project.subtitle}
           </p>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.88rem', lineHeight: '1.75', color: 'var(--color-text-muted)', marginBottom: '1.25rem' }}>
@@ -210,7 +210,7 @@ function ProjectCard({ project, delay }: { project: typeof PROJECTS[number]; del
           </p>
           <div className="flex flex-wrap gap-2">
             {project.tech.map(tag => (
-              <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', letterSpacing: '0.08em', color: 'rgba(0,217,255,0.55)', border: '1px solid rgba(0,217,255,0.15)', padding: '0.2rem 0.6rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
+              <span key={tag} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', letterSpacing: '0.08em', color: 'rgba(0,217,255,0.75)', border: '1px solid rgba(0,217,255,0.15)', padding: '0.2rem 0.6rem', borderRadius: '2px', backgroundColor: 'rgba(0,217,255,0.04)' }}>
                 {tag}
               </span>
             ))}
@@ -223,14 +223,14 @@ function ProjectCard({ project, delay }: { project: typeof PROJECTS[number]; del
           {/* Secondary: Case study link */}
           <Link href={`/projects/${project.slug}`}
             className="flex items-center gap-1.5 transition-all duration-200 hover:gap-2.5"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-text-muted)', letterSpacing: '0.04em' }}>
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-text-muted)', letterSpacing: '0.04em', padding: '14px 4px', margin: '-14px -4px' }}>
             <span>{project.caseStudyLabel}</span>
             <ArrowRight size={11} strokeWidth={2} />
           </Link>
           {/* Primary: CTA */}
           <a href={project.href}
             className="flex items-center gap-1.5 transition-all duration-200 hover:gap-2.5"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-accent)', padding: '14px 4px', margin: '-14px -4px' }}>
             <span>{project.cta}</span>
             <ArrowUpRight size={13} strokeWidth={2} />
           </a>

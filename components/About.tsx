@@ -197,7 +197,7 @@ export default function About() {
           <div className="about-reveal opacity-0 mb-12 flex items-center gap-6">
             <span
               className="text-[10px] uppercase tracking-[0.35em] font-semibold"
-              style={{ color: 'var(--color-secondary)', fontFamily: 'var(--font-body)' }}
+              style={{ color: '#818cf8', fontFamily: 'var(--font-body)' }}
             >
               My Interests
             </span>

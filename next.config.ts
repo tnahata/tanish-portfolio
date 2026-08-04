@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
         destination: '/projects/discovery-agent',
         permanent: true,
       },
+      {
+        source: '/projects/discovery-agent',
+        destination: '/projects/noiseless',
+        permanent: true,
+      },
     ];
   },
 };
