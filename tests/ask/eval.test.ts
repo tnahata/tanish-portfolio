@@ -61,7 +61,7 @@ function entry(overrides: Partial<QuestionEntry> = {}): QuestionEntry {
 }
 
 function counter(): ModelCallCounter {
-  return { embeddings: 0, generations: 0, judgeCalls: 0 };
+  return { embeddings: 0, generations: 0, judgeCalls: 0, leakChecks: 0 };
 }
 
 beforeEach(() => {
