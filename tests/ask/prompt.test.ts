@@ -117,3 +117,16 @@ describe('buildPrompt: assembly', () => {
     expect(assembled).toContain(`ctx-${result.marker}`);
   });
 });
+
+describe('buildPrompt: silence versus a stated negative', () => {
+  it('draws the distinction between a stated negative and mere silence in the system prompt', () => {
+    const grounding = makeGrounding([makeChunk('identity#role', 'He works at FedEx.', 0.72)], 0.72);
+
+    const result = buildPrompt({ question: 'What does he build?', grounding, history: [] });
+
+    expect(result.system).toContain('the context states he has not');
+    expect(result.system).toContain('"he hasn\'t done that", without softening it');
+    expect(result.system).toContain('context is not the same as the context saying he has not done it');
+    expect(result.system).toContain('emit the token instead');
+  });
+});
