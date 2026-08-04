@@ -124,22 +124,30 @@ function withAnonCookie(response: Response, mintedAnonId: string | null): Respon
 /**
  * Pipes the model's token stream into the UI message stream as one text part, and hands the log
  * write to `after()` so it completes even if the function is frozen the moment the stream ends.
+ * `text-start` opens on the first token rather than up front, so a turn that streams nothing
+ * (the withheld-marker case) emits no text parts at all instead of an empty pair.
  */
 async function streamAnswer(writer: UIMessageStreamWriter, turn: ReadyTurn): Promise<void> {
   const { stream, done } = runTurn(turn);
   after(done);
 
   const textId = randomUUID();
-  writer.write({ type: 'text-start', id: textId });
+  let opened = false;
 
   const reader = stream.getReader();
   for (;;) {
     const { done: readerDone, value } = await reader.read();
     if (readerDone) break;
+    if (!opened) {
+      writer.write({ type: 'text-start', id: textId });
+      opened = true;
+    }
     writer.write({ type: 'text-delta', id: textId, delta: value });
   }
 
-  writer.write({ type: 'text-end', id: textId });
+  if (opened) {
+    writer.write({ type: 'text-end', id: textId });
+  }
 }
 
 /**
