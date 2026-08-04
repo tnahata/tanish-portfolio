@@ -25,7 +25,13 @@ interface Section {
   body: string;
 }
 
+interface FenceState {
+  char: string;
+  length: number;
+}
+
 const H2_HEADING = /^## (.+)$/;
+const FENCE_MARKER = /^(`{3,}|~{3,})/;
 
 /**
  * Reads every markdown file in `dir`, validates frontmatter with zod, and splits each into one
@@ -43,7 +49,7 @@ export function loadCorpus(dir: string): CorpusChunk[] {
     const frontmatter = parseFrontmatter(data, fileName);
     const file = basename(fileName, '.md');
 
-    for (const section of splitIntoSections(content)) {
+    for (const section of splitIntoSections(content, fileName)) {
       const id = `${file}#${slugifyHeading(section.heading)}`;
       if (seenIds.has(id)) {
         throw new CorpusValidationError(
@@ -85,23 +91,53 @@ function parseFrontmatter(data: unknown, fileName: string): Frontmatter {
   return result.data;
 }
 
-/** Splits body content on `##` headings; a `###` line stays inside its parent section. */
-function splitIntoSections(content: string): Section[] {
+/**
+ * Splits body content on `##` headings; a `###` line stays inside its parent section. Headings
+ * are not detected inside a fenced code block, since a `## ` there is markdown content, not a
+ * boundary. An unterminated fence throws rather than silently swallowing the rest of the file.
+ */
+function splitIntoSections(content: string, fileName: string): Section[] {
   const sections: Section[] = [];
   let current: { heading: string; lines: string[] } | null = null;
+  let fence: FenceState | null = null;
 
   for (const line of content.split('\n')) {
-    const match = H2_HEADING.exec(line);
-    if (match) {
-      if (current) sections.push(finalizeSection(current));
-      current = { heading: match[1].trim(), lines: [] };
+    const marker = matchFenceMarker(line);
+    if (marker) {
+      fence = nextFenceState(fence, marker, line);
+      if (current) current.lines.push(line);
       continue;
     }
+
+    const headingMatch = fence ? null : H2_HEADING.exec(line);
+    if (headingMatch) {
+      if (current) sections.push(finalizeSection(current));
+      current = { heading: headingMatch[1].trim(), lines: [] };
+      continue;
+    }
+
     if (current) current.lines.push(line);
+  }
+
+  if (fence) {
+    throw new CorpusValidationError(
+      `${fileName}: unterminated code fence opened with "${fence.char.repeat(fence.length)}"`,
+    );
   }
   if (current) sections.push(finalizeSection(current));
 
   return sections;
+}
+
+function matchFenceMarker(line: string): string | null {
+  return FENCE_MARKER.exec(line)?.[1] ?? null;
+}
+
+/** A fence closes on a same-or-longer run of the same character with nothing else on the line. */
+function nextFenceState(fence: FenceState | null, marker: string, line: string): FenceState | null {
+  if (!fence) return { char: marker[0], length: marker.length };
+  const closes = marker[0] === fence.char && marker.length >= fence.length && line.slice(marker.length).trim() === '';
+  return closes ? null : fence;
 }
 
 function finalizeSection(section: { heading: string; lines: string[] }): Section {
