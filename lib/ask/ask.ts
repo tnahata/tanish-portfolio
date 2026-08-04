@@ -1,6 +1,7 @@
 import { CHAT_MODEL } from './config';
 import { preFilter } from './filter';
 import { generate } from './generate';
+import type { GenerationOutcome } from './generate';
 import { checkGate, claimTurn, completeTurn, loadHistory, lockTurn, logFreeTurn } from './log';
 import type { Gated } from './log';
 import { buildPrompt, ForgedDelimiterError } from './prompt';
@@ -98,12 +99,17 @@ export async function prepareTurn(input: {
 }
 
 /**
- * Generates against a prepared turn and writes the outcome. `done` resolves once that write has
- * committed. A rejected `outcome` (stream error, truncated finish) still resolves `done`, since
- * that row is already left claimed with no answer and no locked reason on purpose. A write that
- * itself fails rejects `done`, so losing an already-streamed answer is never silent.
+ * Generates against a prepared turn and writes the outcome. `outcome` is generate()'s own promise,
+ * passed through so a caller can render the verdict, an `unanswerable` turn streams no tokens and
+ * would otherwise look like a silent empty reply. `done` resolves after the write commits: a
+ * rejected `outcome` still resolves `done`, but a failed write rejects it, so a lost answer is
+ * never silent. `outcome` already carries its own handled marker, so a second reader is safe.
  */
-export function runTurn(turn: ReadyTurn): { stream: ReadableStream<string>; done: Promise<void> } {
+export function runTurn(turn: ReadyTurn): {
+  stream: ReadableStream<string>;
+  outcome: Promise<GenerationOutcome>;
+  done: Promise<void>;
+} {
   const { stream, outcome } = generate(turn.prompt);
 
   const done = outcome
@@ -116,5 +122,5 @@ export function runTurn(turn: ReadyTurn): { stream: ReadableStream<string>; done
       return completeTurn({ turnId: turn.turnId, answer: result.text, retrieved: turn.retrieved });
     });
 
-  return { stream, done };
+  return { stream, outcome, done };
 }

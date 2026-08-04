@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { prepareTurn, runTurn } from '../lib/ask/ask';
 import { closeDb } from '../lib/ask/db';
+import { refusalCopy } from '../lib/ask/refusals';
 import type { Identity } from '../lib/ask/types';
 import { loadScriptEnv } from './load-env';
 
@@ -60,9 +61,16 @@ async function main(): Promise<void> {
   }
 
   console.log('ready: streaming answer');
-  const { stream, done } = runTurn(prepared);
+  const { stream, outcome, done } = runTurn(prepared);
+  outcome.catch(() => {}); // mark handled now; read below for the verdict, independent of done
   done.catch(() => {}); // mark handled now; the await below still sees the rejection
   await printStream(stream);
+
+  const result = await outcome.catch(() => null);
+  if (result?.unanswerable) {
+    console.log('refused: unanswerable');
+    console.log(refusalCopy('unanswerable'));
+  }
 
   try {
     await done;
