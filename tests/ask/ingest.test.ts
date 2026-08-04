@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
 import { Pool } from 'pg';
-import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EMBED_DIMS, EMBED_MODEL } from '../../lib/ask/config';
 import * as corpusModule from '../../lib/ask/corpus';
@@ -123,7 +125,20 @@ if (!TEST_DATABASE_URL) {
   );
 }
 
-const pool = TEST_DATABASE_URL ? new Pool({ connectionString: TEST_DATABASE_URL }) : undefined;
+/**
+ * Each database-backed test file owns a private schema, scoped by mutating DATABASE_URL itself
+ * (not just this file's own pool), so ingest() also lands there once it builds its own pool from
+ * the same env var. A whole-table read in one file must never see another file's rows.
+ */
+const SCHEMA = `ask_test_ingest_${randomUUID().replace(/-/g, '_')}`;
+
+if (TEST_DATABASE_URL) {
+  const scoped = new URL(TEST_DATABASE_URL);
+  scoped.searchParams.set('options', `-c search_path=${SCHEMA},public`);
+  process.env.DATABASE_URL = scoped.toString();
+}
+
+const pool = TEST_DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : undefined;
 
 function requirePool(): Pool {
   if (!pool) {
@@ -132,15 +147,27 @@ function requirePool(): Pool {
   return pool;
 }
 
+async function readSchemaSql(): Promise<string> {
+  const schemaPath = fileURLToPath(new URL('../../db/schema.sql', import.meta.url));
+  return readFile(schemaPath, 'utf8');
+}
+
 describe.skipIf(!TEST_DATABASE_URL)('ingest() reconcile against a live database', () => {
   const prefix = `ingest-test-${randomUUID()}`;
 
-  afterEach(async () => {
-    await requirePool().query('delete from chunks where id like $1', [`${prefix}%`]);
+  beforeAll(async () => {
+    const db = requirePool();
+    await db.query(`create schema if not exists ${SCHEMA}`);
+    await db.query(await readSchemaSql());
+  });
+
+  beforeEach(async () => {
+    await requirePool().query('truncate table chunks');
     vi.mocked(corpusModule.loadCorpus).mockReset();
   });
 
   afterAll(async () => {
+    await requirePool().query(`drop schema if exists ${SCHEMA} cascade`);
     await pool?.end();
   });
 
