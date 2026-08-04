@@ -169,6 +169,21 @@ The check runs before the question is embedded, so a broken index costs nothing.
 **`loadHistory` returns chronological order, oldest first.** That is the order `messages` needs, so
 any other choice means a caller reverses it.
 
+**The gate is read twice, and only the second read is authoritative.** `checkGate(identity)` at
+step 4 is a cheap read-only count that stops a gated caller before their question is embedded,
+because a signed-in user past their daily limit would otherwise buy an embedding per question
+forever. `claimTurn` at step 8 takes the advisory lock, counts again and inserts, and may still
+return gated if a concurrent request took the last slot. Claiming at step 4 instead would set
+`model` on turns that go on to refuse at the threshold, burning a turn for a refusal that cost
+nothing.
+
+**`ForgedDelimiterError` maps to `injection`.** `preFilter` already rejects the delimiter shapes,
+so reaching `buildPrompt` with one should be impossible. It is a backstop, and if it ever fires the
+question was an attack.
+
+**`refusalCopy` takes no topic in v1.** Nothing in the pipeline produces a topic string, so the copy
+has to read well without one. The parameter stays for when something does.
+
 **`generate()` returns a stream and a verdict, not just a stream.** The marker is withheld, so an
 unanswerable turn streams nothing, and empty output is indistinguishable from a short answer. The
 caller needs a second channel to know whether to call `completeTurn` or `lockTurn`, so `generate`
