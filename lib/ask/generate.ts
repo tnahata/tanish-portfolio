@@ -18,11 +18,49 @@ function isIncompleteFinish(finishReason: FinishReason): boolean {
   return finishReason !== 'stop';
 }
 
+export interface GenerationOutcome {
+  text: string;
+  unanswerable: boolean;
+}
+
+/** Drains `raw` on its own schedule, independent of whatever the caller does with `stream`. */
+async function buildOutcome(
+  raw: ReadableStream<string>,
+  marker: string,
+  finishReason: PromiseLike<FinishReason>,
+  getStreamError: () => unknown,
+): Promise<GenerationOutcome> {
+  let unanswerable = false;
+  let text = '';
+
+  const reader = raw.pipeThrough(withholdMarker(marker, () => { unanswerable = true; })).getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    text += value;
+  }
+
+  const streamError = getStreamError();
+  if (streamError) throw toError(streamError);
+  const reason = await finishReason;
+  if (isIncompleteFinish(reason)) {
+    throw new Error(`generation did not finish cleanly: ${reason}`);
+  }
+
+  return { text, unanswerable };
+}
+
 /**
- * Streams the answer. Buffers output while it is still a prefix of the marker so the marker never
- * reaches the browser, and surfaces stream errors that the SDK would otherwise swallow.
+ * Streams the answer and reports the verdict on a separate channel. `stream` is the tokens the
+ * caller pipes onward, buffered while output is still a prefix of the marker so the marker never
+ * reaches the browser. `outcome` resolves once generation completes with the accumulated text and
+ * whether the marker fired, and reads its own tee of the model output so an undrained `stream`
+ * cannot hang it.
  */
-export function generate(parts: PromptParts): ReadableStream<string> {
+export function generate(parts: PromptParts): {
+  stream: ReadableStream<string>;
+  outcome: Promise<GenerationOutcome>;
+} {
   let streamError: unknown = null;
 
   const result = streamText({
@@ -35,7 +73,9 @@ export function generate(parts: PromptParts): ReadableStream<string> {
     },
   });
 
-  return result.textStream.pipeThrough(withholdMarker(parts.marker)).pipeThrough(
+  const [forClient, forOutcome] = result.textStream.tee();
+
+  const stream = forClient.pipeThrough(withholdMarker(parts.marker)).pipeThrough(
     new TransformStream<string, string>({
       async flush() {
         if (streamError) throw toError(streamError);
@@ -46,6 +86,11 @@ export function generate(parts: PromptParts): ReadableStream<string> {
       },
     }),
   );
+
+  const outcome = buildOutcome(forOutcome, parts.marker, result.finishReason, () => streamError);
+  outcome.catch(() => {}); // mark handled; the caller's own await/catch still sees the rejection
+
+  return { stream, outcome };
 }
 
 /** Longest suffix of `text` that could still grow into the marker, short of a full match. */
@@ -57,8 +102,11 @@ function partialMarkerSuffixLength(text: string, marker: string): number {
   return 0;
 }
 
-/** Wraps a token stream so any marker prefix is withheld until it is known not to be the marker. */
-export function withholdMarker(marker: string): TransformStream<string, string> {
+/**
+ * Wraps a token stream so any marker prefix is withheld until it is known not to be the marker.
+ * `onMarker`, when given, fires once the moment a full match is found.
+ */
+export function withholdMarker(marker: string, onMarker?: () => void): TransformStream<string, string> {
   let held = '';
   let absorbingMarkerTrail = false;
 
@@ -84,6 +132,7 @@ export function withholdMarker(marker: string): TransformStream<string, string> 
       if (markerIndex !== -1) {
         if (markerIndex > 0) controller.enqueue(combined.slice(0, markerIndex));
         held = '';
+        onMarker?.();
         releaseAfterMarker(combined.slice(markerIndex + marker.length), controller);
         return;
       }
