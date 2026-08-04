@@ -90,6 +90,13 @@ start early.
 
 **Wave 5** — CI with an ephemeral pgvector service, and the eval harness. Parallel.
 
+Database-backed test files each create a private Postgres schema and point
+`process.env.DATABASE_URL` at it, because `lib/ask/db.ts` builds its own pool from that variable
+and a pool-local `search_path` would leave the implementation's own queries unisolated. The CI job
+must create the `vector` extension once, before the parallel files start: the first file to apply
+`db/schema.sql` inside its own schema would otherwise install the extension somewhere that is later
+dropped.
+
 Test authors and implementers of the same module run concurrently and never see each other's work.
 Both write against the skeleton contract and meet in the middle, which is stronger independence
 than writing tests first: the implementer cannot shape code to a test it has not read, and a
