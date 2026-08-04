@@ -13,6 +13,7 @@ import { ForgedDelimiterError } from '../../lib/ask/prompt';
 import type { PromptParts } from '../../lib/ask/prompt';
 import * as refusalsModule from '../../lib/ask/refusals';
 import * as retrieveModule from '../../lib/ask/retrieve';
+import { EmptyIndexError, IngestConfigMismatchError } from '../../lib/ask/retrieve';
 import type { ChunkMetadata, Identity, PriorTurn, RetrievedChunk, StrongGrounding } from '../../lib/ask/types';
 
 vi.mock('../../lib/ask/filter', () => ({
@@ -23,10 +24,14 @@ vi.mock('../../lib/ask/refusals', () => ({
   refusalCopy: vi.fn(),
 }));
 
-vi.mock('../../lib/ask/retrieve', () => ({
-  retrieve: vi.fn(),
-  grade: vi.fn(),
-}));
+vi.mock('../../lib/ask/retrieve', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/ask/retrieve')>();
+  return {
+    ...actual,
+    retrieve: vi.fn(),
+    grade: vi.fn(),
+  };
+});
 
 vi.mock('../../lib/ask/prompt', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/ask/prompt')>();
@@ -177,7 +182,7 @@ describe('prepareTurn: order of operations', () => {
 
     const prepared = await prepareTurn({ question: 'What does he build?', identity: anonIdentity });
     if (prepared.kind !== 'ready') throw new Error(`expected a ready turn, got ${prepared.kind}`);
-    await drain(runTurn(prepared));
+    await runTurn(prepared).done;
 
     const claimOrder = vi.mocked(logModule.claimTurn).mock.invocationCallOrder[0];
     const generateOrder = vi.mocked(generateModule.generate).mock.invocationCallOrder[0];
@@ -200,24 +205,38 @@ describe('prepareTurn: branching', () => {
     expect(refusalsModule.refusalCopy).toHaveBeenCalledWith('private');
   });
 
-  it('returns a gated turn carrying the reason checkGate reports at step 4', async () => {
+  it('returns a gated turn, logging a free row with the gate reason, when checkGate stops the caller at step 4', async () => {
     vi.mocked(filterModule.preFilter).mockReturnValue(null);
     const gate: Gated = { reason: 'rate_limited', resetsAt: null };
     vi.mocked(logModule.checkGate).mockResolvedValue(gate);
 
-    const result = await prepareTurn({ question: 'What does he build?', identity: signedInIdentity });
+    const question = 'What does he build?';
+    const result = await prepareTurn({ question, identity: signedInIdentity });
 
     expect(result).toEqual({ kind: 'gated', gate });
+    expect(logModule.logFreeTurn).toHaveBeenCalledWith(
+      expect.objectContaining({ identity: signedInIdentity, question, reason: 'rate_limited' }),
+    );
+    expect(logModule.claimTurn).not.toHaveBeenCalled();
+    expect(logModule.completeTurn).not.toHaveBeenCalled();
+    expect(logModule.lockTurn).not.toHaveBeenCalled();
   });
 
-  it('lets claimTurn gate a strong-verdict turn at step 8 when a concurrent request took the last slot', async () => {
+  it('returns a gated turn, logging a free row with the gate reason, when claimTurn loses the race at step 8', async () => {
     arrangeReadyPath({});
     const gate: Gated = { reason: 'rate_limited', resetsAt: null };
     vi.mocked(logModule.claimTurn).mockResolvedValue({ gated: gate });
 
-    const result = await prepareTurn({ question: 'What does he build?', identity: signedInIdentity });
+    const question = 'What does he build?';
+    const result = await prepareTurn({ question, identity: signedInIdentity });
 
     expect(result).toEqual({ kind: 'gated', gate });
+    expect(logModule.logFreeTurn).toHaveBeenCalledWith(
+      expect.objectContaining({ identity: signedInIdentity, question, reason: 'rate_limited' }),
+    );
+    expect(logModule.claimTurn).toHaveBeenCalledTimes(1);
+    expect(logModule.completeTurn).not.toHaveBeenCalled();
+    expect(logModule.lockTurn).not.toHaveBeenCalled();
   });
 
   it('refuses off_topic, calls checkGate, logs a free turn, and never claims the turn', async () => {
@@ -295,18 +314,6 @@ describe('prepareTurn: branching', () => {
     expect(logModule.claimTurn).not.toHaveBeenCalled();
   });
 
-  it('never logs a free turn, claims, or completes a turn when checkGate reports a limit', async () => {
-    vi.mocked(filterModule.preFilter).mockReturnValue(null);
-    vi.mocked(logModule.checkGate).mockResolvedValue({ reason: 'rate_limited', resetsAt: null });
-
-    await prepareTurn({ question: 'What does he build?', identity: signedInIdentity });
-
-    expect(logModule.logFreeTurn).not.toHaveBeenCalled();
-    expect(logModule.claimTurn).not.toHaveBeenCalled();
-    expect(logModule.completeTurn).not.toHaveBeenCalled();
-    expect(logModule.lockTurn).not.toHaveBeenCalled();
-  });
-
   it('loads history for the identity and passes it to buildPrompt on a ready turn', async () => {
     const history: PriorTurn[] = [{ question: 'Where does he work?', answer: 'FedEx.' }];
     const { grounding } = arrangeReadyPath({ history });
@@ -336,6 +343,30 @@ describe('prepareTurn: branching', () => {
     expect(result.kind).toBe('refused');
     if (result.kind === 'refused') expect(result.reason).toBe('injection');
   });
+
+  it('lets EmptyIndexError from retrieve propagate as a failure, never as a refusal', async () => {
+    vi.mocked(filterModule.preFilter).mockReturnValue(null);
+    vi.mocked(logModule.checkGate).mockResolvedValue(null);
+    vi.mocked(retrieveModule.retrieve).mockRejectedValue(new EmptyIndexError('chunks table is empty'));
+
+    await expect(
+      prepareTurn({ question: 'What does he build?', identity: anonIdentity }),
+    ).rejects.toThrow(EmptyIndexError);
+    expect(logModule.logFreeTurn).not.toHaveBeenCalled();
+  });
+
+  it('lets IngestConfigMismatchError from retrieve propagate as a failure, never as a refusal', async () => {
+    vi.mocked(filterModule.preFilter).mockReturnValue(null);
+    vi.mocked(logModule.checkGate).mockResolvedValue(null);
+    vi.mocked(retrieveModule.retrieve).mockRejectedValue(
+      new IngestConfigMismatchError('embed model mismatch'),
+    );
+
+    await expect(
+      prepareTurn({ question: 'What does he build?', identity: anonIdentity }),
+    ).rejects.toThrow(IngestConfigMismatchError);
+    expect(logModule.logFreeTurn).not.toHaveBeenCalled();
+  });
 });
 
 describe('runTurn', () => {
@@ -357,8 +388,9 @@ describe('runTurn', () => {
       outcome,
     });
 
-    const output = await drain(runTurn(turn));
-    await outcome;
+    const { stream, done } = runTurn(turn);
+    const output = await drain(stream);
+    await done;
 
     expect(output).toBe('He builds agents for a living.');
     expect(logModule.completeTurn).toHaveBeenCalledWith({
@@ -374,8 +406,9 @@ describe('runTurn', () => {
     const outcome = outcomeOf({ text: '', unanswerable: true });
     vi.mocked(generateModule.generate).mockReturnValue({ stream: streamFrom([]), outcome });
 
-    await drain(runTurn(turn));
-    await outcome;
+    const { stream, done } = runTurn(turn);
+    await drain(stream);
+    await done;
 
     expect(logModule.lockTurn).toHaveBeenCalledWith({
       turnId: turn.turnId,
@@ -390,22 +423,57 @@ describe('runTurn', () => {
     const outcome = outcomeOf({ text: '', unanswerable: true });
     vi.mocked(generateModule.generate).mockReturnValue({ stream: streamFrom([]), outcome });
 
-    const output = await drain(runTurn(turn));
-    await outcome;
+    const { stream, done } = runTurn(turn);
+    const output = await drain(stream);
+    await done;
 
     expect(output).toBe('');
     expect(logModule.completeTurn).not.toHaveBeenCalled();
   });
 
-  it('never calls completeTurn when the outcome rejects on a truncated generation', async () => {
+  it('resolves done normally, without calling completeTurn, when the outcome rejects on a truncated generation', async () => {
     const turn = readyTurn();
     const outcome = Promise.reject(new Error('generation did not finish cleanly: length'));
     outcome.catch(() => {}); // mark handled now; runTurn's own await still sees the rejection
     vi.mocked(generateModule.generate).mockReturnValue({ stream: streamFrom(['Partial ans']), outcome });
 
-    await drain(runTurn(turn)).catch(() => {});
-    await outcome.catch(() => {});
+    const { stream, done } = runTurn(turn);
+    await drain(stream).catch(() => {});
 
+    await expect(done).resolves.toBeUndefined();
     expect(logModule.completeTurn).not.toHaveBeenCalled();
+  });
+
+  it('does not resolve done until the completeTurn write has actually settled', async () => {
+    const turn = readyTurn();
+    const outcome = outcomeOf({ text: 'He builds agents.', unanswerable: false });
+    vi.mocked(generateModule.generate).mockReturnValue({ stream: streamFrom(['He builds agents.']), outcome });
+
+    let completeTurnSettled = false;
+    vi.mocked(logModule.completeTurn).mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      completeTurnSettled = true;
+    });
+
+    const { done } = runTurn(turn);
+    await done;
+
+    expect(completeTurnSettled).toBe(true);
+  });
+
+  it('resolves done even when the caller never reads stream, the serverless failure mode', async () => {
+    const turn = readyTurn();
+    const outcome = outcomeOf({ text: 'He builds agents.', unanswerable: false });
+    vi.mocked(generateModule.generate).mockReturnValue({ stream: streamFrom(['He builds agents.']), outcome });
+
+    const { done } = runTurn(turn); // stream is intentionally never read
+
+    await done;
+
+    expect(logModule.completeTurn).toHaveBeenCalledWith({
+      turnId: turn.turnId,
+      answer: 'He builds agents.',
+      retrieved: turn.retrieved,
+    });
   });
 });
