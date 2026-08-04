@@ -66,3 +66,58 @@ describe('preFilter: pass-through', () => {
     expect(preFilter("What does HybridFit's caching strategy do?")).toBeNull();
   });
 });
+
+/**
+ * experience-fedex.md is largely a debugging narrative: "disabled" and "diagnosis" show up as
+ * ordinary engineering vocabulary, not as references to a person's health.
+ */
+const ENGINEERING_TERMS_THAT_LOOK_MEDICAL: readonly string[] = [
+  'Is the feature flag disabled by default?',
+  'Why did he leave that check disabled in production?',
+  'What is his approach to root cause diagnosis?',
+  'How did he arrive at that diagnosis for the Redis bug?',
+  'What is his mental model for caching?',
+  'Is the codebase healthy?',
+  'Does the app meet accessibility standards?',
+  'How does he diagnose a flaky test?',
+];
+
+describe('preFilter: engineering vocabulary that must not be filtered as private', () => {
+  it.each(ENGINEERING_TERMS_THAT_LOOK_MEDICAL)('%s', (question) => {
+    expect(preFilter(question)).toBeNull();
+  });
+});
+
+const QUESTIONS_ABOUT_HIS_ACTUAL_HEALTH: readonly string[] = [
+  'Does he have any health conditions?',
+  'Is he in good health?',
+  'Has he been diagnosed with anything?',
+  'Does he have a disability?',
+  'Has he had any medical issues?',
+  'Does he struggle with mental health?',
+];
+
+describe('preFilter: the medical sense of those same words must still be filtered as private', () => {
+  it.each(QUESTIONS_ABOUT_HIS_ACTUAL_HEALTH)('%s', (question) => {
+    expect(preFilter(question)).toBe('private');
+  });
+});
+
+/**
+ * identity.md, philosophy.md, and disclosure-discovery-agent.md put prompts, product modes,
+ * access authorization, and audit logs on topic. None of them are an injection attempt.
+ */
+const SYSTEM_DESIGN_TERMS_THAT_LOOK_LIKE_INJECTION: readonly string[] = [
+  'How does he structure the system prompt for an AI agent?',
+  'Does ESMON have a debug mode for testing?',
+  'Is there a developer mode in HybridFit?',
+  'Does the app have a maintenance mode?',
+  'Was he authorized to access production systems at FedEx?',
+  'Does the Discovery Agent audit log get reviewed as part of a security audit?',
+];
+
+describe('preFilter: system-design vocabulary that must not be filtered as injection', () => {
+  it.each(SYSTEM_DESIGN_TERMS_THAT_LOOK_LIKE_INJECTION)('%s', (question) => {
+    expect(preFilter(question)).toBeNull();
+  });
+});
