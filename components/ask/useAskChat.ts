@@ -1,141 +1,124 @@
 'use client';
 
-import { useCallback, useReducer, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 
-import type { AskStreamChunk, ConversationTurn, TurnResponse } from './types';
+import type { LockedReason } from '@/lib/ask/types';
+
+import type { ConversationTurn, TurnResponse } from './types';
 
 const GENERIC_ERROR = "Couldn't reach the agent. Try again in a moment.";
 
-interface AskChatState {
-  turns: ConversationTurn[];
-  busy: boolean;
-  pendingQuestion: string | null;
+/** The three `data-*` shapes `app/api/ask/route.ts` writes, keyed the way `useChat` expects (without the `data-` prefix). */
+type AskDataParts = {
+  status: { stage: 'received' | 'generating' };
+  refusal: { reason: LockedReason; text: string };
+  gate: { reason: Extract<LockedReason, 'sign_in_required' | 'rate_limited'>; resetsAt: string | null };
+};
+
+type AskUIMessage = UIMessage<unknown, AskDataParts>;
+type AskMessagePart = AskUIMessage['parts'][number];
+
+function isTextPart(part: AskMessagePart): part is Extract<AskMessagePart, { type: 'text' }> {
+  return part.type === 'text';
+}
+function isRefusalPart(part: AskMessagePart): part is Extract<AskMessagePart, { type: 'data-refusal' }> {
+  return part.type === 'data-refusal';
+}
+function isGatePart(part: AskMessagePart): part is Extract<AskMessagePart, { type: 'data-gate' }> {
+  return part.type === 'data-gate';
 }
 
-type Action =
-  | { type: 'submit'; id: string; question: string }
-  | { type: 'chunk'; id: string; chunk: AskStreamChunk }
-  | { type: 'stream-failed'; id: string; message: string }
-  | { type: 'clear-pending' };
-
-const initialState: AskChatState = { turns: [], busy: false, pendingQuestion: null };
-
-function updateTurn(turns: ConversationTurn[], id: string, update: (turn: ConversationTurn) => ConversationTurn): ConversationTurn[] {
-  return turns.map((turn) => (turn.id === id ? update(turn) : turn));
+/** Joins the text parts of a user message. `sendMessage({ text })` always produces exactly one. */
+function questionText(message: AskUIMessage): string {
+  return message.parts.filter(isTextPart).map((part) => part.text).join('');
 }
 
-function applyChunk(turn: ConversationTurn, chunk: AskStreamChunk): { turn: ConversationTurn; gated: boolean } {
-  switch (chunk.type) {
-    case 'data-status':
-      return { turn: { ...turn, stage: chunk.data.stage }, gated: false };
-    case 'text-start':
-      return { turn: { ...turn, response: { kind: 'answer', text: '', done: false } }, gated: false };
-    case 'text-delta': {
-      const current: TurnResponse = turn.response?.kind === 'answer' ? turn.response : { kind: 'answer', text: '', done: false };
-      return { turn: { ...turn, response: { ...current, text: current.text + chunk.delta } }, gated: false };
-    }
-    case 'text-end': {
-      const current: TurnResponse = turn.response?.kind === 'answer' ? turn.response : { kind: 'answer', text: '', done: false };
-      return { turn: { ...turn, stage: null, response: { ...current, done: true } }, gated: false };
-    }
-    case 'data-refusal':
-      return { turn: { ...turn, stage: null, response: { kind: 'refusal', ...chunk.data } }, gated: false };
-    case 'data-gate':
-      return { turn: { ...turn, stage: null, response: { kind: 'gate', ...chunk.data } }, gated: true };
-    case 'error':
-      return { turn: { ...turn, stage: null, response: { kind: 'error', message: chunk.errorText } }, gated: false };
-  }
-}
+/** Reads the response an assistant message resolved to. Undefined (no message yet) means still waiting. */
+function turnResponse(message: AskUIMessage | undefined): TurnResponse {
+  if (!message) return null;
 
-function reducer(state: AskChatState, action: Action): AskChatState {
-  switch (action.type) {
-    case 'submit': {
-      const turn: ConversationTurn = { id: action.id, question: action.question, response: null, stage: 'received' };
-      return { turns: [...state.turns, turn], busy: true, pendingQuestion: null };
-    }
-    case 'chunk': {
-      let gated = false;
-      const turns = updateTurn(state.turns, action.id, (turn) => {
-        const applied = applyChunk(turn, action.chunk);
-        gated = applied.gated;
-        return applied.turn;
-      });
-      const stillBusy = action.chunk.type !== 'text-end' && action.chunk.type !== 'data-refusal' && action.chunk.type !== 'data-gate' && action.chunk.type !== 'error';
-      return {
-        turns,
-        busy: stillBusy,
-        pendingQuestion: gated ? state.turns.find((t) => t.id === action.id)?.question ?? null : state.pendingQuestion,
-      };
-    }
-    case 'stream-failed': {
-      const turns = updateTurn(state.turns, action.id, (turn) => ({ ...turn, stage: null, response: { kind: 'error', message: action.message } }));
-      return { ...state, turns, busy: false };
-    }
-    case 'clear-pending':
-      return { ...state, pendingQuestion: null };
-  }
-}
+  const refusal = message.parts.find(isRefusalPart);
+  if (refusal) return { kind: 'refusal', ...refusal.data };
 
-/** Splits an SSE byte stream on blank-line boundaries and yields the JSON payload of each `data:` line. */
-async function* readSseEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
+  const gate = message.parts.find(isGatePart);
+  if (gate) return { kind: 'gate', ...gate.data };
 
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+  const text = message.parts.find(isTextPart);
+  if (text) return { kind: 'answer', text: text.text, done: text.state !== 'streaming' };
 
-    let boundary = buffer.indexOf('\n\n');
-    while (boundary !== -1) {
-      const rawEvent = buffer.slice(0, boundary);
-      buffer = buffer.slice(boundary + 2);
-      const dataLine = rawEvent.split('\n').find((line) => line.startsWith('data:'));
-      if (dataLine) yield dataLine.slice('data:'.length).trim();
-      boundary = buffer.indexOf('\n\n');
-    }
-  }
+  return null;
 }
 
 /**
- * Drives POST /api/ask by hand: no `useChat` here because `@ai-sdk/react` isn't a project
- * dependency. Parses the same UI-message SSE wire format `DefaultChatTransport` would.
+ * Wraps `@ai-sdk/react`'s `useChat`, pointed at the same `POST /api/ask` the server already
+ * writes a standard UI message stream for (`docs/ask-agent.md`, Streaming). The route parses
+ * `{ question: string }`, not the SDK's default `{ id, messages, trigger }` body, so
+ * `prepareSendMessagesRequest` rewrites the outgoing request instead of changing the route.
+ *
+ * `data-status` ships `transient: true` from the server, so it never lands in `message.parts`;
+ * it only reaches `onData`, which is where `stage` is tracked here. `data-refusal` and
+ * `data-gate` are not transient and do land in parts, which `turnResponse` reads.
  */
 export function useAskChat() {
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const nextId = useRef(0);
+  const [stage, setStage] = useState<'received' | 'generating' | null>(null);
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  const lastQuestionRef = useRef('');
 
-  const ask = useCallback(async (question: string) => {
-    const id = `turn-${nextId.current++}`;
-    dispatch({ type: 'submit', id, question });
+  const [transport] = useState(
+    () =>
+      new DefaultChatTransport<AskUIMessage>({
+        api: '/api/ask',
+        prepareSendMessagesRequest: ({ messages }) => ({
+          body: { question: questionText(messages[messages.length - 1]) },
+        }),
+      }),
+  );
 
-    try {
-      const response = await fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ question }),
+  const { messages, status, sendMessage } = useChat<AskUIMessage>({
+    transport,
+    onData: (part) => {
+      if (part.type === 'data-status') setStage(part.data.stage);
+      if (part.type === 'data-gate') setPendingQuestion(lastQuestionRef.current);
+    },
+    onFinish: () => setStage(null),
+    onError: () => setStage(null),
+  });
+
+  const busy = status === 'submitted' || status === 'streaming';
+
+  const ask = useCallback(
+    async (question: string) => {
+      lastQuestionRef.current = question;
+      setPendingQuestion(null);
+      setStage('received');
+      await sendMessage({ text: question });
+    },
+    [sendMessage],
+  );
+
+  const clearPending = useCallback(() => setPendingQuestion(null), []);
+
+  const turns = useMemo<ConversationTurn[]>(() => {
+    const result: ConversationTurn[] = [];
+    for (let index = 0; index < messages.length; index += 1) {
+      const message = messages[index];
+      if (message.role !== 'user') continue;
+
+      const next = messages[index + 1];
+      const assistant = next?.role === 'assistant' ? next : undefined;
+      const isLastTurn = (assistant ? index + 1 : index) === messages.length - 1;
+
+      result.push({
+        id: message.id,
+        question: questionText(message),
+        response: isLastTurn && status === 'error' ? { kind: 'error', message: GENERIC_ERROR } : turnResponse(assistant),
+        stage: isLastTurn ? stage : null,
       });
-
-      if (!response.ok || !response.body) {
-        dispatch({ type: 'stream-failed', id, message: GENERIC_ERROR });
-        return;
-      }
-
-      for await (const payload of readSseEvents(response.body)) {
-        if (payload === '[DONE]') continue;
-        const chunk = JSON.parse(payload) as AskStreamChunk;
-        dispatch({ type: 'chunk', id, chunk });
-      }
-    } catch {
-      dispatch({ type: 'stream-failed', id, message: GENERIC_ERROR });
     }
-  }, []);
+    return result;
+  }, [messages, status, stage]);
 
-  const clearPending = useCallback(() => dispatch({ type: 'clear-pending' }), []);
-
-  const lastTurn = state.turns[state.turns.length - 1];
-  const stage = state.busy ? (lastTurn?.stage ?? 'received') : null;
-
-  return { turns: state.turns, busy: state.busy, stage, pendingQuestion: state.pendingQuestion, ask, clearPending };
+  return { turns, busy, stage, pendingQuestion, ask, clearPending };
 }

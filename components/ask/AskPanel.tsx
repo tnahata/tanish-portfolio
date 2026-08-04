@@ -303,14 +303,13 @@ export default function AskPanel({ chat, pathname, reducedMotion, onClose, retur
       role="dialog"
       aria-modal="true"
       aria-labelledby={TITLE_ID}
-      className="ask-panel-enter"
+      className="ask-panel-enter ask-panel"
       style={{
         position: 'fixed',
         right: 'clamp(1rem, 4vw, 2rem)',
         bottom: 'calc(clamp(1rem, 4vw, 2rem) + 72px)',
         zIndex: 61,
         width: 'min(400px, calc(100vw - 2rem))',
-        maxHeight: 'min(600px, calc(100vh - 8rem))',
         display: 'flex',
         flexDirection: 'column',
         borderRadius: '8px',

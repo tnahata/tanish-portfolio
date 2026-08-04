@@ -36,6 +36,17 @@ export default function AskFab() {
 
   const fabState: SignalState = chat.busy ? 'thinking' : open ? 'open' : hovered ? 'hover' : 'idle';
 
+  /**
+   * A quiet cyan halo at rest, not just a black drop shadow, so the FAB reads as a lit instrument
+   * on the dark hero rather than a plain dark disc. Thinking's halo stays the brightest by far.
+   */
+  const FAB_GLOW: Record<SignalState, string> = {
+    idle: 'drop-shadow(0 0 9px rgba(0,217,255,0.22)) drop-shadow(0 4px 16px rgba(0,0,0,0.4))',
+    hover: 'drop-shadow(0 0 16px rgba(0,217,255,0.4)) drop-shadow(0 4px 18px rgba(0,0,0,0.42))',
+    open: 'drop-shadow(0 0 9px rgba(0,217,255,0.22)) drop-shadow(0 4px 16px rgba(0,0,0,0.4))',
+    thinking: 'drop-shadow(0 0 18px rgba(0,217,255,0.35))',
+  };
+
   return (
     <>
       <button
@@ -59,8 +70,9 @@ export default function AskFab() {
           border: 'none',
           background: 'transparent',
           cursor: 'pointer',
-          filter: chat.busy ? 'drop-shadow(0 0 18px rgba(0,217,255,0.35))' : 'drop-shadow(0 4px 20px rgba(0,0,0,0.45))',
-          transition: 'filter var(--transition-base)',
+          filter: FAB_GLOW[fabState],
+          transform: hovered && !chat.busy ? 'scale(1.05)' : 'scale(1)',
+          transition: 'filter var(--transition-base), transform var(--transition-base)',
         }}
       >
         <SignalMotif size={60} state={fabState} stage={chat.stage} reducedMotion={reducedMotion} />

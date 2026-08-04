@@ -102,6 +102,17 @@ button:focus-visible {
   }
 }
 
+.ask-panel {
+  max-height: min(600px, calc(100vh - 8rem));
+}
+
+/* The home hero's H1 sits near 30-45vh; capping the panel below that keeps it clear on desktop. */
+@media (min-width: 1024px) {
+  .ask-panel {
+    max-height: min(480px, 40vh, calc(100vh - 8rem));
+  }
+}
+
 .ask-panel-enter {
   animation: askPanelEnter var(--transition-base) ease-out;
 }

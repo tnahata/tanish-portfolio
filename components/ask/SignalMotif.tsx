@@ -41,6 +41,17 @@ const STAGE_VELOCITY: Record<Exclude<SignalStage, null>, number> = {
   generating: 5.4,
 };
 
+/**
+ * Line opacities per state, raised from the 0.25/0.14/0.16 idle floor this replaced so the rings
+ * and spokes read as an instrument at rest. idle/hover strokes clear WCAG 1.4.11's 3:1 floor.
+ */
+const EMPHASIS: Record<SignalState, { stroke: number; ring: number; spoke: number; wedge: number }> = {
+  idle: { stroke: 0.46, ring: 0.28, spoke: 0.3, wedge: 0.26 },
+  hover: { stroke: 0.56, ring: 0.34, spoke: 0.36, wedge: 0.3 },
+  open: { stroke: 0.4, ring: 0.24, spoke: 0.26, wedge: 0.24 },
+  thinking: { stroke: 0.6, ring: 0.36, spoke: 0.38, wedge: 0.32 },
+};
+
 function targetVelocity(state: SignalState, stage: SignalStage): number {
   if (state === 'thinking' && stage) return STAGE_VELOCITY[stage];
   return BASE_VELOCITY[state];
@@ -97,6 +108,7 @@ export default function SignalMotif({ size, state, stage = null, reducedMotion }
   const spokeAngles = [0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2];
   const glowId = `signal-glow-${uid}`;
   const bgId = `signal-bg-${uid}`;
+  const emphasis = EMPHASIS[state];
 
   return (
     <svg
@@ -123,23 +135,23 @@ export default function SignalMotif({ size, state, stage = null, reducedMotion }
       <path
         d={SQUIRCLE_PATH}
         fill={`url(#${bgId})`}
-        stroke={thinking ? 'rgba(0,217,255,0.55)' : 'rgba(0,217,255,0.25)'}
+        stroke={`rgba(0,217,255,${emphasis.stroke})`}
         strokeWidth="1.25"
       />
 
       {RINGS.map((r) => (
-        <circle key={r} cx={CX} cy={CY} r={r} fill="none" stroke="rgba(0,217,255,0.14)" strokeWidth="1" />
+        <circle key={r} cx={CX} cy={CY} r={r} fill="none" stroke={`rgba(0,217,255,${emphasis.ring})`} strokeWidth="1" />
       ))}
 
       {spokeAngles.map((angle) => {
         const p = point(angle, SPOKE_R);
-        return <line key={angle} x1={CX} y1={CY} x2={p.x} y2={p.y} stroke="rgba(0,217,255,0.16)" strokeWidth="1" />;
+        return <line key={angle} x1={CX} y1={CY} x2={p.x} y2={p.y} stroke={`rgba(0,217,255,${emphasis.spoke})`} strokeWidth="1" />;
       })}
 
       <g ref={rotorRef} style={{ transformOrigin: '32px 32px' }}>
         <path
           d={`M${CX},${CY} L${point(-0.42, ORBIT_R + 2).x},${point(-0.42, ORBIT_R + 2).y} A${ORBIT_R + 2},${ORBIT_R + 2} 0 0 1 ${point(0.42, ORBIT_R + 2).x},${point(0.42, ORBIT_R + 2).y} Z`}
-          fill="rgba(0,217,255,0.22)"
+          fill={`rgba(0,217,255,${emphasis.wedge})`}
         />
         <circle cx={point(0, ORBIT_R).x} cy={point(0, ORBIT_R).y} r={thinking ? 3.2 : 2.6} fill="#00d9ff" filter={`url(#${glowId})`} />
         <circle cx={point(Math.PI, ORBIT_R - 4).x} cy={point(Math.PI, ORBIT_R - 4).y} r={2} fill="#6366f1" opacity={0.85} />
