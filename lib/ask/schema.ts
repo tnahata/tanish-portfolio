@@ -1,81 +1,34 @@
-import { sql } from 'drizzle-orm';
-import { check, date, integer, jsonb, numeric, pgTable, text, timestamp, unique, uuid, vector } from 'drizzle-orm/pg-core';
+import { boolean, index, jsonb, pgTable, text, timestamp, uuid, vector } from 'drizzle-orm/pg-core';
 
-const EMBEDDING_DIMENSIONS = 1024;
+import { EMBED_DIMS } from './config';
+import type { ChunkMetadata, LockedReason, RetrievedChunk } from './types';
 
-export const documents = pgTable('documents', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  slug: text('slug').notNull().unique(),
-  title: text('title').notNull(),
-  route: text('route'),
-  kind: text('kind').notNull(),
+/** Mirrors db/schema.sql. The two must be changed together; schema.sql is the source of truth. */
+
+export const chunks = pgTable('chunks', {
+  id: text('id').primaryKey(),
+  content: text('content').notNull(),
+  metadata: jsonb('metadata').$type<ChunkMetadata>().notNull(),
+  embedding: vector('embedding', { dimensions: EMBED_DIMS }).notNull(),
 });
 
-export const chunks = pgTable(
-  'chunks',
+export const userInteractions = pgTable(
+  'user_interactions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    documentId: uuid('document_id')
-      .notNull()
-      .references(() => documents.id, { onDelete: 'cascade' }),
-    ordinal: integer('ordinal').notNull(),
-    heading: text('heading'),
-    content: text('content').notNull(),
-    contentHash: text('content_hash').notNull(),
-    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }).notNull(),
-  },
-  (t) => [unique().on(t.documentId, t.ordinal)],
-);
-
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  clerkUserId: text('clerk_user_id').notNull().unique(),
-  msgCount: integer('msg_count').notNull().default(0),
-  windowStart: date('window_start').notNull().default(sql`current_date`),
-  dailyLimit: integer('daily_limit').notNull().default(20),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const ASK_EVENT_TYPES = [
-  'question_received',
-  'retrieved',
-  'graded',
-  'generation_started',
-  'generated',
-  'refused',
-  'captured',
-  'error',
-  'ingest_completed',
-] as const;
-
-export type AskEventType = (typeof ASK_EVENT_TYPES)[number];
-
-const askEventTypeEnumSql = ASK_EVENT_TYPES.map((value) => `'${value}'`).join(', ');
-
-export const askEvents = pgTable(
-  'ask_events',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    sessionId: uuid('session_id'),
-    userId: uuid('user_id').references(() => users.id),
-    turnId: uuid('turn_id'),
-    seq: integer('seq').notNull(),
-    event: text('event').notNull().$type<AskEventType>(),
-    payload: jsonb('payload').notNull().default({}),
-    costUsd: numeric('cost_usd', { precision: 10, scale: 6 }),
+    userId: text('user_id'),
+    anonId: text('anon_id'),
+    question: text('question').notNull(),
+    answer: text('answer'),
+    retrieved: jsonb('retrieved').$type<RetrievedChunk[]>(),
+    isFree: boolean('is_free').notNull().default(false),
+    /** Non-null exactly when a model was called. Both gates count on it. */
+    model: text('model'),
+    lockedReason: text('locked_reason').$type<LockedReason>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    unique().on(t.turnId, t.seq),
-    check('ask_events_event_check', sql`${t.event} in (${sql.raw(askEventTypeEnumSql)})`),
+    index('user_interactions_user_created_idx').on(t.userId, t.createdAt.desc()),
+    index('user_interactions_anon_created_idx').on(t.anonId, t.createdAt.desc()),
   ],
 );
-
-export type DocumentRow = typeof documents.$inferSelect;
-export type NewDocumentRow = typeof documents.$inferInsert;
-export type ChunkRow = typeof chunks.$inferSelect;
-export type NewChunkRow = typeof chunks.$inferInsert;
-export type UserRow = typeof users.$inferSelect;
-export type AskEventRow = typeof askEvents.$inferSelect;
-export type NewAskEventRow = typeof askEvents.$inferInsert;
