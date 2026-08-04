@@ -4,7 +4,6 @@ import { auth } from '@clerk/nextjs/server';
 import { checkBotId } from 'botid/server';
 import { createUIMessageStream, createUIMessageStreamResponse, type UIMessageStreamWriter } from 'ai';
 import { after, NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 
 import type { ReadyTurn } from '@/lib/ask/ask';
@@ -43,7 +42,22 @@ function gateChunk(gate: Gated) {
   };
 }
 
-async function parseAskRequest(request: NextRequest): Promise<{ question: string } | null> {
+/** Reads one cookie value from a standard `Request`'s `Cookie` header. No framework cookie jar. */
+function readCookie(request: Request, name: string): string | undefined {
+  const header = request.headers.get('cookie');
+  if (!header) return undefined;
+
+  for (const pair of header.split(';')) {
+    const separatorIndex = pair.indexOf('=');
+    if (separatorIndex === -1) continue;
+    if (pair.slice(0, separatorIndex).trim() === name) {
+      return pair.slice(separatorIndex + 1).trim();
+    }
+  }
+  return undefined;
+}
+
+async function parseAskRequest(request: Request): Promise<{ question: string } | null> {
   let body: unknown;
   try {
     body = await request.json();
@@ -70,14 +84,14 @@ async function resolveClerkUserId(): Promise<string | null> {
  * the only case the caller needs to set a cookie on the response.
  */
 async function resolveIdentity(
-  request: NextRequest,
+  request: Request,
 ): Promise<{ identity: Identity; mintedAnonId: string | null }> {
   const userId = await resolveClerkUserId();
   if (userId) {
     return { identity: { userId, anonId: null }, mintedAnonId: null };
   }
 
-  const cookieValue = request.cookies.get(ANON_COOKIE_NAME)?.value;
+  const cookieValue = readCookie(request, ANON_COOKIE_NAME);
   const validCookie = cookieValue ? z.uuid().safeParse(cookieValue) : null;
   if (validCookie?.success) {
     return { identity: { userId: null, anonId: validCookie.data }, mintedAnonId: null };
@@ -160,7 +174,7 @@ async function runAskTurn(writer: UIMessageStreamWriter, question: string, ident
   await streamAnswer(writer, prepared);
 }
 
-export async function POST(request: NextRequest): Promise<Response> {
+export async function POST(request: Request): Promise<Response> {
   const bot = await checkBotId();
   if (bot.isBot) {
     return new Response('Forbidden', { status: 403 });
