@@ -20,11 +20,12 @@ He holds a Bachelor of Science in Computer Science and Data Science from the Uni
 Wisconsin-Madison, with a 3.93 GPA. His relevant coursework included data structures and
 algorithms, operating systems, an introduction to data science programming, and machine learning.
 
-## Work authorisation
+## Visa sponsorship
 
-He is on an H-1B visa, and it is transferable to a new employer. A new employer can file a transfer
-petition directly, without waiting on the annual H-1B lottery, so his work authorisation does not
-hold up a start date the way a cap-subject petition would.
+He does not need new visa sponsorship. He is on an H-1B that is transferable to a new employer: they
+file a transfer petition directly, without waiting on the annual H-1B lottery or sponsoring a fresh
+cap-subject petition, so his work authorisation does not hold up a start date the way starting
+sponsorship from scratch would.
 
 ## Location and remote
 
