@@ -11,7 +11,7 @@ import { CHAT_MODEL, MAX_RETRIES } from '../lib/ask/config';
 import { closeDb } from '../lib/ask/db';
 import { preFilter } from '../lib/ask/filter';
 import { generate } from '../lib/ask/generate';
-import { checkGate, claimTurn, completeTurn, loadHistory, lockTurn } from '../lib/ask/log';
+import { checkGate, claimTurn, completeTurn, loadHistory, lockTurn, logFreeTurn } from '../lib/ask/log';
 import { buildPrompt, ForgedDelimiterError } from '../lib/ask/prompt';
 import type { PromptParts } from '../lib/ask/prompt';
 import { grade, retrieve } from '../lib/ask/retrieve';
@@ -22,9 +22,8 @@ import { loadScriptEnv } from './load-env';
  * Runs every filled question in evals/questions.yaml through the real pipeline and scores it
  * against what its stratum expects. See docs/ask-agent.md, the "Refusals" table.
  *
- * Steps mirror prepareTurn/runTurn (lib/ask/ask.ts) exactly, called directly rather than through
- * that wrapper: RefusedTurn does not carry the top retrieval score, and the score is the reason
- * this harness exists.
+ * Mirrors prepareTurn/runTurn (lib/ask/ask.ts) exactly, including its logFreeTurn calls, but
+ * inlines them: RefusedTurn drops the top retrieval score this harness needs.
  */
 
 const STRATA = ['injection', 'private', 'off-task', 'unanswerable-fair', 'answerable'] as const;
@@ -38,7 +37,7 @@ const questionEntrySchema = z.object({
   note: z.string(),
   bypassesFilter: z.boolean().default(false),
 });
-type QuestionEntry = z.infer<typeof questionEntrySchema>;
+export type QuestionEntry = z.infer<typeof questionEntrySchema>;
 
 /** The reasons a stratum's refusal is allowed to land on. Not applicable to `answerable`. */
 const ACCEPTED_REFUSAL_REASONS: Record<Exclude<Stratum, 'answerable'>, readonly LockedReason[]> = {
@@ -107,7 +106,7 @@ function passes(entry: QuestionEntry, actual: ActualOutcome, judge: JudgeResult 
   return accepted.includes(actual as LockedReason);
 }
 
-interface ModelCallCounter {
+export interface ModelCallCounter {
   embeddings: number;
   generations: number;
   judgeCalls: number;
@@ -149,7 +148,7 @@ export async function judgeAnswer(input: { question: string; answer: string; not
   }
 }
 
-interface QuestionOutcome {
+export interface QuestionOutcome {
   actual: ActualOutcome;
   topScore: number | null;
   answer: string | null;
@@ -171,19 +170,26 @@ async function drain(stream: ReadableStream<string>): Promise<string> {
  * Runs one question through preFilter, checkGate, retrieve, grade, claimTurn, buildPrompt and
  * generate, in that order: the same functions and order prepareTurn/runTurn compose, just called
  * directly so the top retrieval score and the generation outcome are both visible to the caller.
- * Each question uses its own identity (`eval:<id>`) so no question can gate another.
+ * Each question's identity is scoped to this run (`eval:<runId>:<id>`), so no question can gate
+ * another and repeated runs never accumulate against the same identity.
  */
-async function evaluateQuestion(entry: QuestionEntry, counter: ModelCallCounter): Promise<QuestionOutcome> {
-  const identity: Identity = { userId: `eval:${entry.id}`, anonId: null };
+export async function evaluateQuestion(
+  entry: QuestionEntry,
+  counter: ModelCallCounter,
+  runId: number,
+): Promise<QuestionOutcome> {
+  const identity: Identity = { userId: `eval:${runId}:${entry.id}`, anonId: null };
 
   try {
     const preFilterReason = preFilter(entry.question);
     if (preFilterReason) {
+      await logFreeTurn({ identity, question: entry.question, reason: preFilterReason });
       return { actual: preFilterReason, topScore: null, answer: null, errorMessage: null };
     }
 
     const gate = await checkGate(identity);
     if (gate) {
+      await logFreeTurn({ identity, question: entry.question, reason: gate.reason });
       return { actual: gate.reason, topScore: null, answer: null, errorMessage: null };
     }
 
@@ -193,11 +199,18 @@ async function evaluateQuestion(entry: QuestionEntry, counter: ModelCallCounter)
 
     const grading = grade(chunks);
     if (grading.verdict !== 'strong') {
+      await logFreeTurn({ identity, question: entry.question, reason: grading.reason, retrieved: grading.chunks });
       return { actual: grading.reason, topScore, answer: null, errorMessage: null };
     }
 
     const claim = await claimTurn({ identity, question: entry.question, model: CHAT_MODEL });
     if ('gated' in claim) {
+      await logFreeTurn({
+        identity,
+        question: entry.question,
+        reason: claim.gated.reason,
+        retrieved: [...grading.grounding.chunks],
+      });
       return { actual: claim.gated.reason, topScore, answer: null, errorMessage: null };
     }
 
@@ -411,6 +424,10 @@ interface EvalReport {
 async function main(): Promise<void> {
   loadScriptEnv();
 
+  /** Also the results filename below: one identifier scopes both, so a run's rows and its
+   *  report are addressable by the same number and repeated runs never collide. */
+  const runId = Date.now();
+
   const entries = loadQuestions(questionsPath());
   const filled = entries.filter(isFilled);
 
@@ -422,7 +439,7 @@ async function main(): Promise<void> {
 
   for (let index = 0; index < filled.length; index += 1) {
     const entry = filled[index];
-    const outcome = await evaluateQuestion(entry, counter);
+    const outcome = await evaluateQuestion(entry, counter, runId);
 
     let judge: JudgeResult | null = null;
     const shouldJudge = entry.stratum === 'answerable' && outcome.actual === 'answered' && outcome.answer && entry.note.trim();
@@ -479,10 +496,9 @@ async function main(): Promise<void> {
     console.error('');
   }
 
-  const timestamp = Date.now();
   const report: EvalReport = {
-    timestamp,
-    generatedAt: new Date(timestamp).toISOString(),
+    timestamp: runId,
+    generatedAt: new Date(runId).toISOString(),
     totals: buildTotals(entries, results),
     modelCalls: counter,
     safetyGatePassed,
@@ -490,7 +506,7 @@ async function main(): Promise<void> {
   };
 
   mkdirSync(RESULTS_DIR, { recursive: true });
-  const resultsPath = join(RESULTS_DIR, `eval-${timestamp}.json`);
+  const resultsPath = join(RESULTS_DIR, `eval-${runId}.json`);
   writeFileSync(resultsPath, JSON.stringify(report, null, 2), 'utf8');
   console.log(`Results written to ${resultsPath}`);
 
