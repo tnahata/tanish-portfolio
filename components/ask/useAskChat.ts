@@ -17,7 +17,7 @@ type AskDataParts = {
   gate: { reason: Extract<LockedReason, 'sign_in_required' | 'rate_limited'>; resetsAt: string | null };
 };
 
-type AskUIMessage = UIMessage<unknown, AskDataParts>;
+export type AskUIMessage = UIMessage<unknown, AskDataParts>;
 type AskMessagePart = AskUIMessage['parts'][number];
 
 function isTextPart(part: AskMessagePart): part is Extract<AskMessagePart, { type: 'text' }> {
@@ -52,6 +52,35 @@ function turnResponse(message: AskUIMessage | undefined): TurnResponse {
 }
 
 /**
+ * Turns `messages` into per-turn view state. `failedTurnIds` marks a turn as failed by its own
+ * user message id, so an error stays attached to the turn it happened to regardless of how many
+ * turns follow it. Pure and exported so the mapping is testable without rendering `useChat`.
+ */
+export function buildTurns(
+  messages: AskUIMessage[],
+  failedTurnIds: ReadonlySet<string>,
+  stage: 'received' | 'generating' | null,
+): ConversationTurn[] {
+  const result: ConversationTurn[] = [];
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index];
+    if (message.role !== 'user') continue;
+
+    const next = messages[index + 1];
+    const assistant = next?.role === 'assistant' ? next : undefined;
+    const isLastTurn = (assistant ? index + 1 : index) === messages.length - 1;
+
+    result.push({
+      id: message.id,
+      question: questionText(message),
+      response: failedTurnIds.has(message.id) ? { kind: 'error', message: GENERIC_ERROR } : turnResponse(assistant),
+      stage: isLastTurn ? stage : null,
+    });
+  }
+  return result;
+}
+
+/**
  * Wraps `@ai-sdk/react`'s `useChat`, pointed at the same `POST /api/ask` the server already
  * writes a standard UI message stream for (`docs/ask-agent.md`, Streaming). The route parses
  * `{ question: string }`, not the SDK's default `{ id, messages, trigger }` body, so
@@ -64,7 +93,9 @@ function turnResponse(message: AskUIMessage | undefined): TurnResponse {
 export function useAskChat() {
   const [stage, setStage] = useState<'received' | 'generating' | null>(null);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  const [failedTurnIds, setFailedTurnIds] = useState<ReadonlySet<string>>(() => new Set());
   const lastQuestionRef = useRef('');
+  const messagesRef = useRef<AskUIMessage[]>([]);
 
   const [transport] = useState(
     () =>
@@ -83,8 +114,16 @@ export function useAskChat() {
       if (part.type === 'data-gate') setPendingQuestion(lastQuestionRef.current);
     },
     onFinish: () => setStage(null),
-    onError: () => setStage(null),
+    onError: () => {
+      setStage(null);
+      // A failed request produces no assistant message, so the failing user message is whatever is last here.
+      const failedMessage = messagesRef.current[messagesRef.current.length - 1];
+      if (failedMessage?.role === 'user') {
+        setFailedTurnIds((prev) => new Set(prev).add(failedMessage.id));
+      }
+    },
   });
+  messagesRef.current = messages;
 
   const busy = status === 'submitted' || status === 'streaming';
 
@@ -100,25 +139,7 @@ export function useAskChat() {
 
   const clearPending = useCallback(() => setPendingQuestion(null), []);
 
-  const turns = useMemo<ConversationTurn[]>(() => {
-    const result: ConversationTurn[] = [];
-    for (let index = 0; index < messages.length; index += 1) {
-      const message = messages[index];
-      if (message.role !== 'user') continue;
-
-      const next = messages[index + 1];
-      const assistant = next?.role === 'assistant' ? next : undefined;
-      const isLastTurn = (assistant ? index + 1 : index) === messages.length - 1;
-
-      result.push({
-        id: message.id,
-        question: questionText(message),
-        response: isLastTurn && status === 'error' ? { kind: 'error', message: GENERIC_ERROR } : turnResponse(assistant),
-        stage: isLastTurn ? stage : null,
-      });
-    }
-    return result;
-  }, [messages, status, stage]);
+  const turns = useMemo(() => buildTurns(messages, failedTurnIds, stage), [messages, failedTurnIds, stage]);
 
   return { turns, busy, stage, pendingQuestion, ask, clearPending };
 }
