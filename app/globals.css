@@ -102,6 +102,27 @@ button:focus-visible {
   }
 }
 
+.ask-panel-surface {
+  --ask-answer-size: 0.9rem;
+  border-style: solid;
+  border-width: 1px;
+  border-color: rgba(0, 217, 255, 0.18);
+  transition:
+    right var(--transition-base),
+    bottom var(--transition-base),
+    left var(--transition-base),
+    top var(--transition-base),
+    width var(--transition-base),
+    border-radius var(--transition-base),
+    border-color var(--transition-base);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-panel-surface {
+    transition: none;
+  }
+}
+
 .ask-panel {
   max-height: min(600px, calc(100vh - 8rem));
 }
@@ -111,6 +132,49 @@ button:focus-visible {
   .ask-panel {
     max-height: min(480px, 40vh, calc(100vh - 8rem));
   }
+}
+
+.ask-panel-expanded {
+  --ask-answer-size: 0.98rem;
+  inset: 0;
+  width: auto;
+  max-height: none;
+  border-radius: 0;
+  border-color: transparent;
+}
+
+@media (min-width: 640px) {
+  .ask-panel-expanded {
+    inset: clamp(1rem, 3vw, 2.5rem);
+    border-radius: 8px;
+    border-color: rgba(0, 217, 255, 0.18);
+  }
+}
+
+.ask-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 61;
+  background: rgba(5, 7, 20, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: askBackdropEnter var(--transition-base) ease-out;
+}
+
+@keyframes askBackdropEnter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-backdrop {
+    animation: none;
+  }
+}
+
+.ask-panel-column {
+  max-width: 68ch;
+  margin: 0 auto;
 }
 
 .ask-panel-enter {

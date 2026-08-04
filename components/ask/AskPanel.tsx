@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
 import { SignInButton, useUser } from '@clerk/nextjs';
-import { X } from 'lucide-react';
+import { Maximize2, Minimize2, X } from 'lucide-react';
 
 import { refusalCopy } from '@/lib/ask/refusals';
 
@@ -17,6 +17,8 @@ interface AskPanelProps {
   chat: ReturnType<typeof useAskChat>;
   pathname: string;
   reducedMotion: boolean;
+  expanded: boolean;
+  onToggleExpand: () => void;
   onClose: () => void;
   returnFocusTo: React.RefObject<HTMLElement | null>;
 }
@@ -46,7 +48,7 @@ function QuestionBubble({ question }: { question: string }) {
       <p
         style={{
           fontFamily: 'var(--font-body)',
-          fontSize: '0.9rem',
+          fontSize: 'var(--ask-answer-size)',
           lineHeight: 1.5,
           color: 'var(--color-text)',
           borderRight: '2px solid var(--color-accent)',
@@ -92,7 +94,7 @@ function AnswerBlock({ text, done }: { text: string; done: boolean }) {
       <p
         style={{
           fontFamily: 'var(--font-body)',
-          fontSize: '0.9rem',
+          fontSize: 'var(--ask-answer-size)',
           lineHeight: 1.6,
           color: 'var(--color-text)',
           margin: 0,
@@ -254,7 +256,7 @@ function TurnBlock({ turn, onRetry }: { turn: ConversationTurn; onRetry: (questi
   );
 }
 
-export default function AskPanel({ chat, pathname, reducedMotion, onClose, returnFocusTo }: AskPanelProps) {
+export default function AskPanel({ chat, pathname, reducedMotion, expanded, onToggleExpand, onClose, returnFocusTo }: AskPanelProps) {
   const [draft, setDraft] = useState('');
   const panelRef = useRef<HTMLDivElement | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
@@ -262,6 +264,15 @@ export default function AskPanel({ chat, pathname, reducedMotion, onClose, retur
   const { isSignedIn } = useUser();
 
   useFocusTrap(panelRef, true, returnFocusTo);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [expanded]);
 
   useEffect(() => {
     const el = transcriptRef.current;
@@ -297,155 +308,174 @@ export default function AskPanel({ chat, pathname, reducedMotion, onClose, retur
 
   const chips = getStarterChips(pathname);
 
-  return (
-    <div
-      ref={panelRef}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={TITLE_ID}
-      className="ask-panel-enter ask-panel"
-      style={{
-        position: 'fixed',
+  const dockedStyle: React.CSSProperties = expanded
+    ? {}
+    : {
         right: 'clamp(1rem, 4vw, 2rem)',
         bottom: 'calc(clamp(1rem, 4vw, 2rem) + 72px)',
-        zIndex: 61,
         width: 'min(400px, calc(100vw - 2rem))',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRadius: '8px',
-        border: '1px solid rgba(0,217,255,0.18)',
-        background: 'rgba(10,14,39,0.97)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        boxShadow: '0 24px 80px rgba(0,0,0,0.55), 0 0 40px rgba(0,217,255,0.06)',
-        overflow: 'hidden',
-      }}
-    >
-      <header
+      };
+
+  return (
+    <>
+      {expanded && <div className="ask-backdrop" onClick={onToggleExpand} />}
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={TITLE_ID}
+        className={`ask-panel-enter ask-panel-surface ${expanded ? 'ask-panel-expanded' : 'ask-panel'}`}
         style={{
+          position: 'fixed',
+          zIndex: 62,
           display: 'flex',
-          alignItems: 'center',
-          gap: '0.65rem',
-          padding: '0.9rem 1rem',
-          borderBottom: '1px solid rgba(0,217,255,0.1)',
+          flexDirection: 'column',
+          background: 'rgba(10,14,39,0.97)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.55), 0 0 40px rgba(0,217,255,0.06)',
+          overflow: 'hidden',
+          ...dockedStyle,
         }}
       >
-        <SignalMotif size={30} state={chat.busy ? 'thinking' : 'open'} stage={chat.stage} reducedMotion={reducedMotion} />
-        <div style={{ flex: 1 }}>
-          <h2
-            id={TITLE_ID}
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '1rem',
-              fontWeight: 600,
-              color: 'var(--color-text)',
-              margin: 0,
-            }}
-          >
-            Signal
-          </h2>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--color-text-muted)', margin: 0, letterSpacing: '0.05em' }}>
-            Ask about Tanish&apos;s work
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close Signal"
-          style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: '4px' }}
+        <header
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.65rem',
+            padding: '0.9rem 1rem',
+            borderBottom: '1px solid rgba(0,217,255,0.1)',
+          }}
         >
-          <X size={18} strokeWidth={1.5} />
-        </button>
-      </header>
-
-      <div ref={transcriptRef} style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {chat.turns.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', lineHeight: 1.6, color: 'var(--color-text-muted)', margin: 0 }}>
-              Grounded in what Tanish has actually written. Ask something, or start here:
+          <SignalMotif size={30} state={chat.busy ? 'thinking' : 'open'} stage={chat.stage} reducedMotion={reducedMotion} />
+          <div style={{ flex: 1 }}>
+            <h2
+              id={TITLE_ID}
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1rem',
+                fontWeight: 600,
+                color: 'var(--color-text)',
+                margin: 0,
+              }}
+            >
+              Signal
+            </h2>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--color-text-muted)', margin: 0, letterSpacing: '0.05em' }}>
+              Ask about Tanish&apos;s work
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {chips.map((chip, index) => (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => submit(chip)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'baseline',
-                    gap: '0.6rem',
-                    textAlign: 'left',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: '0.82rem',
-                    color: 'var(--color-text)',
-                    background: 'rgba(0,217,255,0.06)',
-                    border: '1px solid rgba(0,217,255,0.16)',
-                    borderRadius: '4px',
-                    padding: '0.6rem 0.8rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '0.65rem',
-                      color: 'var(--color-accent)',
-                      letterSpacing: '0.05em',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  {chip}
-                </button>
-              ))}
-            </div>
           </div>
-        ) : (
-          chat.turns.map((turn) => <TurnBlock key={turn.id} turn={turn} onRetry={submit} />)
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            aria-label={expanded ? 'Exit fullscreen' : 'Expand to fullscreen'}
+            style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: '4px' }}
+          >
+            {expanded ? <Minimize2 size={18} strokeWidth={1.5} /> : <Maximize2 size={18} strokeWidth={1.5} />}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close Signal"
+            style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: '4px' }}
+          >
+            <X size={18} strokeWidth={1.5} />
+          </button>
+        </header>
 
-      <form onSubmit={onFormSubmit} style={{ display: 'flex', gap: '0.5rem', padding: '0.85rem', borderTop: '1px solid rgba(0,217,255,0.1)' }}>
-        <textarea
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Ask Signal about Tanish's work"
-          rows={1}
-          disabled={chat.busy}
-          aria-label="Your question"
-          style={{
-            flex: 1,
-            resize: 'none',
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.85rem',
-            color: 'var(--color-text)',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(0,217,255,0.15)',
-            borderRadius: '8px',
-            padding: '0.55rem 0.7rem',
-          }}
-        />
-        <button
-          type="submit"
-          disabled={chat.busy || draft.trim().length === 0}
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.82rem',
-            fontWeight: 600,
-            color: 'var(--color-primary)',
-            background: 'var(--color-accent)',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '0 1rem',
-            cursor: chat.busy ? 'default' : 'pointer',
-            opacity: chat.busy || draft.trim().length === 0 ? 0.5 : 1,
-          }}
-        >
-          Send
-        </button>
-      </form>
-    </div>
+        <div ref={transcriptRef} style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+          <div className={expanded ? 'ask-panel-column' : undefined} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {chat.turns.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', lineHeight: 1.6, color: 'var(--color-text-muted)', margin: 0 }}>
+                  Grounded in what Tanish has actually written. Ask something, or start here:
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {chips.map((chip, index) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => submit(chip)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: '0.6rem',
+                        textAlign: 'left',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '0.82rem',
+                        color: 'var(--color-text)',
+                        background: 'rgba(0,217,255,0.06)',
+                        border: '1px solid rgba(0,217,255,0.16)',
+                        borderRadius: '4px',
+                        padding: '0.6rem 0.8rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '0.65rem',
+                          color: 'var(--color-accent)',
+                          letterSpacing: '0.05em',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              chat.turns.map((turn) => <TurnBlock key={turn.id} turn={turn} onRetry={submit} />)
+            )}
+          </div>
+        </div>
+
+        <div style={{ padding: '0.85rem', borderTop: '1px solid rgba(0,217,255,0.1)' }}>
+          <form onSubmit={onFormSubmit} className={expanded ? 'ask-panel-column' : undefined} style={{ display: 'flex', gap: '0.5rem' }}>
+            <textarea
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder="Ask Signal about Tanish's work"
+              rows={1}
+              disabled={chat.busy}
+              aria-label="Your question"
+              style={{
+                flex: 1,
+                resize: 'none',
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.85rem',
+                color: 'var(--color-text)',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(0,217,255,0.15)',
+                borderRadius: '8px',
+                padding: '0.55rem 0.7rem',
+              }}
+            />
+            <button
+              type="submit"
+              disabled={chat.busy || draft.trim().length === 0}
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                color: 'var(--color-primary)',
+                background: 'var(--color-accent)',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0 1rem',
+                cursor: chat.busy ? 'default' : 'pointer',
+                opacity: chat.busy || draft.trim().length === 0 ? 0.5 : 1,
+              }}
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      </div>
+    </>
   );
 }

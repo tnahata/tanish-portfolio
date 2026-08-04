@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import AskPanel from './AskPanel';
 import SignalMotif, { type SignalState } from './SignalMotif';
 import { useAskChat } from './useAskChat';
+import { useExpandPersistence } from './useExpandPersistence';
 import { useOpenPersistence } from './useOpenPersistence';
 import { useReducedMotion } from './useReducedMotion';
 
@@ -16,23 +17,30 @@ import { useReducedMotion } from './useReducedMotion';
  */
 export default function AskFab() {
   const [open, setOpen] = useOpenPersistence();
+  const [expanded, setExpanded] = useExpandPersistence();
   const [hovered, setHovered] = useState(false);
   const fabRef = useRef<HTMLButtonElement | null>(null);
   const pathname = usePathname();
   const reducedMotion = useReducedMotion();
   const chat = useAskChat();
 
+  const close = useCallback(() => {
+    setOpen(false);
+    setExpanded(false);
+  }, [setOpen, setExpanded]);
+  const toggle = useCallback(() => setOpen((prev) => !prev), [setOpen]);
+  const toggleExpand = useCallback(() => setExpanded((prev) => !prev), [setExpanded]);
+
   useEffect(() => {
     if (!open) return;
     const onKeydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key !== 'Escape') return;
+      if (expanded) setExpanded(false);
+      else close();
     };
     document.addEventListener('keydown', onKeydown);
     return () => document.removeEventListener('keydown', onKeydown);
-  }, [open, setOpen]);
-
-  const close = useCallback(() => setOpen(false), [setOpen]);
-  const toggle = useCallback(() => setOpen((prev) => !prev), [setOpen]);
+  }, [open, expanded, close, setExpanded]);
 
   const fabState: SignalState = chat.busy ? 'thinking' : open ? 'open' : hovered ? 'hover' : 'idle';
 
@@ -83,6 +91,8 @@ export default function AskFab() {
           chat={chat}
           pathname={pathname ?? '/'}
           reducedMotion={reducedMotion}
+          expanded={expanded}
+          onToggleExpand={toggleExpand}
           onClose={close}
           returnFocusTo={fabRef}
         />
