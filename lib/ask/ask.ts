@@ -42,6 +42,17 @@ async function refuseForFree(
   return { kind: 'refused', reason, text: refusalCopy(reason) };
 }
 
+/** Logs a gate hit so `sign_in_required` and `rate_limited` are queryable, not just enum values. */
+async function gateForFree(
+  identity: Identity,
+  question: string,
+  gate: Gated,
+  retrieved?: RetrievedChunk[],
+): Promise<GatedTurn> {
+  await logFreeTurn({ identity, question, reason: gate.reason, retrieved });
+  return { kind: 'gated', gate };
+}
+
 /**
  * Everything up to but not including the model call: pre-filter, gate, embed, retrieve, grade,
  * history, claim. Split from runTurn so the route can stream without owning generation.
@@ -59,7 +70,7 @@ export async function prepareTurn(input: {
 
   const gate = await checkGate(identity);
   if (gate) {
-    return { kind: 'gated', gate };
+    return gateForFree(identity, question, gate);
   }
 
   const chunks = await retrieve(question);
@@ -70,7 +81,7 @@ export async function prepareTurn(input: {
 
   const claim = await claimTurn({ identity, question, model: CHAT_MODEL });
   if ('gated' in claim) {
-    return { kind: 'gated', gate: claim.gated };
+    return gateForFree(identity, question, claim.gated, [...grading.grounding.chunks]);
   }
 
   const history = await loadHistory(identity);
@@ -88,24 +99,22 @@ export async function prepareTurn(input: {
 
 /**
  * Generates against a prepared turn and writes the outcome. Emits answer text, or resolves the
- * turn as `unanswerable` when the marker fires. A generation that errors or finishes truncated
- * writes neither: the claimed row stays with no answer and no locked reason, which is
- * distinguishable from every resolved outcome and is what an operator query watches for.
+ * turn as `unanswerable` when the marker fires. `done` resolves once that write has committed, so
+ * a caller that must close a resource (a pool, a serverless invocation) can await it instead of
+ * racing a fire-and-forget write. `done` never rejects: a stream error or truncated finish is
+ * already handled by leaving the row claimed with no answer and no locked reason, not by throwing.
  */
-export function runTurn(turn: ReadyTurn): ReadableStream<string> {
+export function runTurn(turn: ReadyTurn): { stream: ReadableStream<string>; done: Promise<void> } {
   const { stream, outcome } = generate(turn.prompt);
 
-  outcome
+  const done = outcome
     .then((result) => {
       if (result.unanswerable) {
         return lockTurn({ turnId: turn.turnId, reason: 'unanswerable', retrieved: turn.retrieved });
       }
       return completeTurn({ turnId: turn.turnId, answer: result.text, retrieved: turn.retrieved });
     })
-    .catch(() => {
-      // A stream error or truncated finish. Nothing to write: an unfinished answer must never
-      // look like a real one, so the row stays claimed with no answer and no locked reason.
-    });
+    .catch(() => {});
 
-  return stream;
+  return { stream, done };
 }
