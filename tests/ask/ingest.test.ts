@@ -7,10 +7,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 import { EMBED_DIMS, EMBED_MODEL } from '../../lib/ask/config';
 import * as corpusModule from '../../lib/ask/corpus';
+import * as embedModule from '../../lib/ask/embed';
 import { EmptyCorpusError, ingest, planReconcile } from '../../lib/ask/ingest';
 import type { ChunkMetadata, CorpusChunk } from '../../lib/ask/types';
 
-vi.mock('../../lib/ask/corpus', () => ({ loadCorpus: vi.fn() }));
+vi.mock('../../lib/ask/corpus', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/ask/corpus')>();
+  return { ...actual, loadCorpus: vi.fn() };
+});
 
 vi.mock('../../lib/ask/embed', () => ({
   embedOne: vi.fn(async () => new Array(EMBED_DIMS).fill(0.001)),
@@ -164,6 +168,7 @@ describe.skipIf(!TEST_DATABASE_URL)('ingest() reconcile against a live database'
   beforeEach(async () => {
     await requirePool().query('truncate table chunks');
     vi.mocked(corpusModule.loadCorpus).mockReset();
+    vi.mocked(embedModule.embedMany).mockClear();
   });
 
   afterAll(async () => {
@@ -214,6 +219,43 @@ describe.skipIf(!TEST_DATABASE_URL)('ingest() reconcile against a live database'
 
     const updated = rows.find((r) => r.id === updatedId);
     expect(updated?.content).toBe('refreshed content');
+  });
+
+  it('embeds title + heading + content, not content alone, and skips the unchanged chunk entirely', async () => {
+    const db = requirePool();
+    const keptId = `${prefix}#kept`;
+    const updatedId = `${prefix}#updated`;
+
+    await db.query(
+      `insert into chunks (id, content, metadata, embedding) values
+       ($1, 'kept content', $2::jsonb, $3::vector),
+       ($4, 'stale content', $5::jsonb, $3::vector)`,
+      [
+        keptId,
+        JSON.stringify(metadata({ contentHash: 'hash-kept' })),
+        vectorLiteral(0.5),
+        updatedId,
+        JSON.stringify(metadata({ contentHash: 'hash-old' })),
+      ],
+    );
+
+    vi.mocked(corpusModule.loadCorpus).mockReturnValue([
+      { id: keptId, content: 'kept content', metadata: metadata({ contentHash: 'hash-kept' }) },
+      {
+        id: updatedId,
+        content: 'refreshed content',
+        metadata: metadata({ heading: 'New Heading', title: 'New Title', contentHash: 'hash-new' }),
+      },
+    ]);
+
+    await ingest('/fixtures/does-not-matter');
+
+    expect(embedModule.embedMany).toHaveBeenCalledTimes(1);
+    const [texts] = vi.mocked(embedModule.embedMany).mock.calls[0];
+    expect(texts).toEqual(['New Title\nNew Heading\n\nrefreshed content']);
+
+    const { rows } = await db.query<{ content: string }>('select content from chunks where id = $1', [updatedId]);
+    expect(rows[0].content).toBe('refreshed content');
   });
 
   it('refuses an empty desired corpus and leaves existing chunks in place', async () => {

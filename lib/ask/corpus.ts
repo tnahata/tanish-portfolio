@@ -67,7 +67,7 @@ export function loadCorpus(dir: string): CorpusChunk[] {
           title: frontmatter.title,
           embedModel: EMBED_MODEL,
           dims: EMBED_DIMS,
-          contentHash: hashContent(section.body),
+          contentHash: hashContent(embeddingText(frontmatter.title, section.heading, section.body)),
         },
       });
     }
@@ -154,7 +154,15 @@ export function slugifyHeading(heading: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-/** Stable hash of chunk content, used by reconcile to decide whether a chunk needs re-embedding. */
+/**
+ * Text handed to the embedding model: title, then heading, then body. Distinct from `chunk.content`,
+ * which stays body-only since that is what the prompt shows the model.
+ */
+export function embeddingText(title: string, heading: string, body: string): string {
+  return `${title}\n${heading}\n\n${body}`;
+}
+
+/** Stable hash of the embedded text, used by reconcile to decide whether a chunk needs re-embedding. */
 export function hashContent(content: string): string {
   return createHash('sha256').update(content, 'utf-8').digest('hex');
 }

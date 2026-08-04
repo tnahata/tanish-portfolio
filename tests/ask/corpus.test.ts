@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { CorpusValidationError, hashContent, loadCorpus, slugifyHeading } from '@/lib/ask/corpus';
+import { CorpusValidationError, embeddingText, hashContent, loadCorpus, slugifyHeading } from '@/lib/ask/corpus';
 
 const FRONTMATTER = (id: string, title = 'A Title') =>
   `---\nid: ${id}\ntitle: ${title}\nkind: page\nroute: /\n---\n`;
@@ -179,11 +179,11 @@ Unicode heading content.
     expect(slugPart).toBe(slugifyHeading('Café, Naïve & Co. — 2026!!!'));
   });
 
-  it('sets contentHash to hashContent(content) for every chunk', async () => {
+  it('sets contentHash to hashContent(embeddingText(title, heading, content)) for every chunk', async () => {
     await writeCorpusFile(
       dir,
       'hashed.md',
-      `${FRONTMATTER('hashed')}
+      `${FRONTMATTER('hashed', 'Hashed Title')}
 ## Only Section
 
 Body text used to verify the hash.
@@ -193,7 +193,71 @@ Body text used to verify the hash.
     const chunks = loadCorpus(dir);
 
     expect(chunks).toHaveLength(1);
-    expect(chunks[0].metadata.contentHash).toBe(hashContent(chunks[0].content));
+    const chunk = chunks[0];
+    expect(chunk.metadata.contentHash).toBe(
+      hashContent(embeddingText(chunk.metadata.title, chunk.metadata.heading, chunk.content)),
+    );
+  });
+
+  it('gives a chunk whose heading changes a different contentHash, even with identical body and title', async () => {
+    await writeCorpusFile(
+      dir,
+      'a.md',
+      `${FRONTMATTER('a', 'Same Title')}
+## Original Heading
+
+Identical body text.
+`,
+    );
+    await writeCorpusFile(
+      dir,
+      'b.md',
+      `${FRONTMATTER('b', 'Same Title')}
+## Changed Heading
+
+Identical body text.
+`,
+    );
+
+    const chunks = loadCorpus(dir);
+    const a = chunks.find((chunk) => chunk.metadata.file === 'a');
+    const b = chunks.find((chunk) => chunk.metadata.file === 'b');
+
+    expect(a?.content).toBe(b?.content);
+    expect(a?.metadata.contentHash).not.toBe(b?.metadata.contentHash);
+  });
+});
+
+describe('embeddingText', () => {
+  it('composes title, then heading, then body, in that order', () => {
+    const text = embeddingText('The Title', 'The Heading', 'The body text.');
+
+    expect(text).toBe('The Title\nThe Heading\n\nThe body text.');
+  });
+
+  it('includes title and heading, which chunk.content never carries', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'ask-corpus-'));
+    try {
+      await writeCorpusFile(
+        dir,
+        'sample.md',
+        `${FRONTMATTER('sample', 'A Distinctive Title')}
+## A Distinctive Heading
+
+Just the body.
+`,
+      );
+
+      const [chunk] = loadCorpus(dir);
+      const text = embeddingText(chunk.metadata.title, chunk.metadata.heading, chunk.content);
+
+      expect(text).toContain('A Distinctive Title');
+      expect(text).toContain('A Distinctive Heading');
+      expect(chunk.content).not.toContain('A Distinctive Title');
+      expect(chunk.content).not.toContain('A Distinctive Heading');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });
 

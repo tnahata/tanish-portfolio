@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
 
-import { loadCorpus } from './corpus';
+import { embeddingText, loadCorpus } from './corpus';
 import { getDb } from './db';
 import { embedMany } from './embed';
 import { chunks } from './schema';
@@ -55,7 +55,9 @@ async function embedChanged(plan: IngestPlan): Promise<Map<string, number[]>> {
   const changed = [...plan.insert, ...plan.update];
   if (changed.length === 0) return new Map();
 
-  const vectors = await embedMany(changed.map((chunk) => chunk.content));
+  const vectors = await embedMany(
+    changed.map((chunk) => embeddingText(chunk.metadata.title, chunk.metadata.heading, chunk.content)),
+  );
   return new Map(changed.map((chunk, index) => [chunk.id, vectors[index]]));
 }
 
