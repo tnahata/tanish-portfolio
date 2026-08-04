@@ -108,6 +108,12 @@ his salary at ESMON" scores high against the ESMON chunks and none of them answe
 emits a per-request random marker instead of answering when the context does not contain the
 answer. Random because a fixed marker is a literal string a visitor can type.
 
+**Context and question carry per-request randomized delimiters.** The shape is
+`<ctx-TOKEN trust="none">...</ctx-TOKEN>` and `<q-TOKEN>...</q-TOKEN>`, sharing the token with the
+answerability marker. A question matching `/<\/?(ctx|q)-/i` is rejected with `ForgedDelimiterError`.
+The random token is what makes a delimiter unforgeable, so the rejection regex only has to catch
+attempts at those two prefixes. Ordinary prose containing `<context>` is harmless and passes.
+
 **Pre-filter runs before retrieval.** Injection attempts and private questions are refused
 regardless of what comes back, so embedding first is wasted spend, and retrieving on "his salary"
 pulls exactly the job chunks.
@@ -147,6 +153,35 @@ first half. The refusal half survives and is the stronger half.
 The rate limit is no longer atomic. A count plus a claim row inserted before generation shrinks the
 race to near zero, but a burst can yield limit+1. The Anthropic console cap is the real ceiling
 underneath.
+
+## Edge behaviour
+
+Pinned because wave 2 would otherwise guess, and two agents guessing separately is how a contract
+drifts.
+
+**An empty `chunks` table is a broken deployment, not an off-topic question.** `retrieve()` throws
+`EmptyIndexError` rather than returning an empty array, because silently refusing every question as
+off topic would look identical to a working agent facing a hostile visitor. `grade([])` still
+returns `off_topic` as a defensive floor. Both `EmptyIndexError` and `IngestConfigMismatchError`
+are operator errors, not refusals: the route surfaces them as a failure, never as a `refusal` part.
+The check runs before the question is embedded, so a broken index costs nothing.
+
+**`loadHistory` returns chronological order, oldest first.** That is the order `messages` needs, so
+any other choice means a caller reverses it.
+
+**`generate()` returns a stream and a verdict, not just a stream.** The marker is withheld, so an
+unanswerable turn streams nothing, and empty output is indistinguishable from a short answer. The
+caller needs a second channel to know whether to call `completeTurn` or `lockTurn`, so `generate`
+returns `{ stream, outcome }` where `outcome` resolves after the stream completes with the
+accumulated text and whether the marker fired.
+
+**`is_free` is true when the turn generated without a signed-in user**, set at claim time. It is
+recoverable from `user_id is null`, and kept because it stays true in the row after that visitor
+later signs in, which is the only way to count how often the free turn converts.
+
+**`IngestConfigMismatchError` belongs to retrieval, not ingest.** Ingest writes whatever the config
+says; retrieval is where a mismatch between the configured model and the stored one becomes wrong
+answers.
 
 ## Refusals
 

@@ -51,32 +51,52 @@ components/ask/ AskFab.tsx, AskPanel.tsx
 
 Tests land before the code they cover, and never from the agent that writes that code.
 
-| # | Commit | Agent | Needs |
-|---|---|---|---|
-| 02 | tests: pure logic | test A | nothing |
-| 03 | corpus: read, frontmatter, chunk on `##` | impl | nothing |
-| 04 | filter + refusals | impl | nothing |
-| 05 | prompt assembly + marker | impl | nothing |
-| 06 | tests: data layer | test B | Postgres |
-| 07 | db.ts, `scripts/db-setup.ts`, schema verified live | impl | Postgres |
-| 08 | log.ts: gates, claim row, history | impl | Postgres |
-| 09 | tests: retrieval | test C | Postgres |
-| 10 | embed.ts | impl | OpenAI |
-| 11 | ingest.ts reconcile + `scripts/ingest.ts` | impl | Postgres, OpenAI |
-| 12 | retrieve.ts + grade | impl | Postgres, OpenAI |
-| 13 | tests: generation | test D | nothing (model mocked) |
-| 14 | generate.ts + withhold transform | impl | Anthropic |
-| 15 | ask.ts prepareTurn/runTurn + `scripts/ask.ts` | impl | all |
-| 16 | tests: route | test E | nothing (deps mocked) |
-| 17 | `app/api/ask/route.ts` | impl | all, Clerk, BotID |
-| 18 | Signal FAB + panel | impl | route |
-| 19 | CI: `npm test` with an ephemeral pgvector service | impl | nothing |
-| 20 | eval harness vs `evals/questions.yaml` | impl | all |
+Agents run in parallel within a wave, each in its own git worktree branched from the current
+`ask-agent-v2` HEAD (`worktree.baseRef: head`). Each commits on its own branch; the orchestrator
+cherry-picks them onto `ask-agent-v2` in a fixed order, running typecheck, lint and the suite after
+each pick. File sets within a wave are disjoint, so the picks do not conflict and history stays
+linear with every commit still reviewable on its own.
 
-Serial, one agent per commit, so history stays linear and every commit is reviewable on its own.
+A wave ends when every agent in it has landed and the suite is green. Nothing in a later wave may
+start early.
 
-Tier 1 (02–05) is parallelizable across git worktrees if wall-clock matters more than a clean
-history. Not the default.
+**Wave 0** — commit 01, the skeleton. Landed.
+
+**Wave 1** — needs only the skeleton.
+
+| Files | Agent |
+|---|---|
+| `tests/ask/{corpus,filter,refusals,prompt}.test.ts` | test A |
+| `corpus.ts` | impl |
+| `filter.ts`, `refusals.ts` | impl |
+| `prompt.ts` | impl |
+| `db.ts`, `scripts/db-setup.ts` | impl |
+| `embed.ts` | impl |
+| `tests/ask/{log,ingest,retrieve,generate}.test.ts` | test B |
+
+**Wave 2**
+
+| Files | Agent | Needs |
+|---|---|---|
+| `log.ts` | impl | db |
+| `ingest.ts`, `scripts/ingest.ts` | impl | corpus, embed, db |
+| `retrieve.ts` | impl | embed, db |
+| `generate.ts` | impl | prompt |
+| `tests/ask/{ask,route}.test.ts` | test C | |
+
+**Wave 3** — `ask.ts`, `scripts/ask.ts`. Needs everything below it.
+
+**Wave 4** — `app/api/ask/route.ts`, then `components/ask/` once the route exists.
+
+**Wave 5** — CI with an ephemeral pgvector service, and the eval harness. Parallel.
+
+Test authors and implementers of the same module run concurrently and never see each other's work.
+Both write against the skeleton contract and meet in the middle, which is stronger independence
+than writing tests first: the implementer cannot shape code to a test it has not read, and a
+disagreement between the two means the contract was ambiguous, which is worth finding.
+
+No agent may run `npm install` or edit `package.json`. A missing dependency is reported to the
+orchestrator, which installs it between waves, so no two agents ever race the lockfile.
 
 `types.ts`, `config.ts`, `schema.ts` and `db/schema.sql` are complete in commit 01 rather than
 stubbed. They are declarations, not implementations, and everything else types against them.
@@ -91,7 +111,7 @@ Not exhaustive, but none of these may be missing:
 - **filter**: injection phrasing inside an otherwise valid question; a private keyword appearing
   innocently ("what address does he give for the repo"); case and spacing variants
 - **ingest**: empty desired corpus (must refuse); a chunk whose content changed but id did not;
-  a chunk deleted from disk; embed model mismatch against `chunks.metadata`
+  a chunk deleted from disk
 - **retrieval**: scores straddling each threshold exactly; every chunk below floor; ties
 - **gates**: anonymous second turn; a signed-in user at exactly the limit; concurrent requests
   under the advisory lock; a refusal that cost nothing not counting; `unanswerable` counting
