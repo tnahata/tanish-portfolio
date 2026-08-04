@@ -5,6 +5,7 @@ import { BotIdClient } from 'botid/client';
 import UTMTracker from '@/components/UTMTracker';
 import Nav from '@/components/Nav';
 import FooterBar from '@/components/FooterBar';
+import AskFab from '@/components/ask/AskFab';
 import './globals.css';
 
 const PROTECTED_ROUTES = [{ path: '/api/ask', method: 'POST' }];
@@ -52,6 +53,7 @@ export default function RootLayout({
           <Nav />
           {children}
           <FooterBar year={currentYear} />
+          <AskFab />
           <Analytics />
           <UTMTracker />
         </ClerkProvider>
