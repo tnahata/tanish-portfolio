@@ -113,6 +113,23 @@ function streamFrom(chunks: string[]): ReadableStream<string> {
   });
 }
 
+interface StreamFrame {
+  type: string;
+  data?: Record<string, unknown>;
+  delta?: string;
+  errorText?: string;
+}
+
+/** Splits a UI message stream response body into its `data: {json}` SSE frames, in order. */
+function parseSseFrames(body: string): StreamFrame[] {
+  return body
+    .split('\n')
+    .filter((line) => line.startsWith('data: '))
+    .map((line) => line.slice('data: '.length).trim())
+    .filter((payload) => payload.length > 0 && payload !== '[DONE]')
+    .map((payload) => JSON.parse(payload) as StreamFrame);
+}
+
 function anonCookieHeader(response: Response): string | undefined {
   return response.headers.getSetCookie().find((entry) => entry.startsWith(`${ANON_COOKIE_NAME}=`));
 }
@@ -190,11 +207,11 @@ describe('POST /api/ask: status codes and stream shape', () => {
     );
 
     const response = await POST(askRequest({ question: 'What is his salary at ESMON?' }));
-    const body = await response.text();
+    const frames = parseSseFrames(await response.text());
+    const refusal = frames.find((frame) => frame.type === 'data-refusal');
 
     expect(response.status).toBe(200);
-    expect(body).toContain('no_grounding');
-    expect(body).toContain("Not something he's written about.");
+    expect(refusal?.data).toEqual({ reason: 'no_grounding', text: "Not something he's written about." });
   });
 
   it('responds 200 with a gate part carrying the reason, never 401 or 429', async () => {
@@ -205,12 +222,13 @@ describe('POST /api/ask: status codes and stream shape', () => {
     );
 
     const response = await POST(askRequest({ question: 'What does he build?' }));
-    const body = await response.text();
+    const frames = parseSseFrames(await response.text());
+    const gate = frames.find((frame) => frame.type === 'data-gate');
 
     expect(response.status).toBe(200);
     expect(response.status).not.toBe(401);
     expect(response.status).not.toBe(429);
-    expect(body).toContain('sign_in_required');
+    expect(gate?.data).toEqual({ reason: 'sign_in_required', resetsAt: null });
   });
 
   it('emits a status part before any answer content', async () => {
@@ -223,16 +241,16 @@ describe('POST /api/ask: status codes and stream shape', () => {
     });
 
     const response = await POST(askRequest({ question: 'What does he build?' }));
-    const body = await response.text();
+    const frames = parseSseFrames(await response.text());
 
-    const statusIndex = body.indexOf('status');
-    const answerIndex = body.indexOf('He builds agents for a living.');
+    const statusIndex = frames.findIndex((frame) => frame.type === 'data-status');
+    const answerIndex = frames.findIndex((frame) => frame.type === 'text-delta');
 
     expect(statusIndex).toBeGreaterThanOrEqual(0);
     expect(answerIndex).toBeGreaterThan(statusIndex);
   });
 
-  it('streams the answer content of a ready turn', async () => {
+  it('streams the answer as ordered text-delta frames that reassemble to the full answer', async () => {
     arrangeHuman();
     arrangeAnonymous();
     vi.mocked(askModule.prepareTurn).mockResolvedValue(readyTurn());
@@ -242,10 +260,14 @@ describe('POST /api/ask: status codes and stream shape', () => {
     });
 
     const response = await POST(askRequest({ question: 'What does he build?' }));
-    const body = await response.text();
+    const frames = parseSseFrames(await response.text());
+    const answer = frames
+      .filter((frame) => frame.type === 'text-delta')
+      .map((frame) => frame.delta)
+      .join('');
 
     expect(response.status).toBe(200);
-    expect(body).toContain('He builds agents for a living.');
+    expect(answer).toBe('He builds agents for a living.');
   });
 });
 
@@ -340,7 +362,7 @@ describe('POST /api/ask: completion and failure', () => {
     expect(vi.mocked(after)).toHaveBeenCalledWith(donePromise);
   });
 
-  it('surfaces EmptyIndexError from prepareTurn as a failure response, never a refusal, without leaking the internal message', async () => {
+  it('surfaces EmptyIndexError from prepareTurn as an error part inside the 200 stream, never a refusal, without leaking the internal message', async () => {
     arrangeHuman();
     arrangeAnonymous();
     const internalMessage = 'chunks table is empty. Ingest has not been run against this database';
@@ -348,13 +370,16 @@ describe('POST /api/ask: completion and failure', () => {
 
     const response = await POST(askRequest({ question: 'What does he build?' }));
     const body = await response.text();
+    const frames = parseSseFrames(body);
 
-    expect(response.ok).toBe(false);
+    expect(response.status).toBe(200);
+    expect(frames.some((frame) => frame.type === 'error')).toBe(true);
+    expect(frames.some((frame) => frame.type === 'data-refusal')).toBe(false);
     expect(body).not.toContain(internalMessage);
     expect(body).not.toContain('EmptyIndexError');
   });
 
-  it('surfaces IngestConfigMismatchError from prepareTurn as a failure response, never a refusal, without leaking the internal message', async () => {
+  it('surfaces IngestConfigMismatchError from prepareTurn as an error part inside the 200 stream, never a refusal, without leaking the internal message', async () => {
     arrangeHuman();
     arrangeAnonymous();
     const internalMessage = 'chunks.metadata records embedModel "text-embedding-3-small" (512 dims)';
@@ -362,8 +387,11 @@ describe('POST /api/ask: completion and failure', () => {
 
     const response = await POST(askRequest({ question: 'What does he build?' }));
     const body = await response.text();
+    const frames = parseSseFrames(body);
 
-    expect(response.ok).toBe(false);
+    expect(response.status).toBe(200);
+    expect(frames.some((frame) => frame.type === 'error')).toBe(true);
+    expect(frames.some((frame) => frame.type === 'data-refusal')).toBe(false);
     expect(body).not.toContain(internalMessage);
     expect(body).not.toContain('IngestConfigMismatchError');
   });
