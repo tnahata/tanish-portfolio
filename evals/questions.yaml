@@ -451,8 +451,9 @@
   expect: answer
   note: >-
     Unflattering-answer case. A correct answer says plainly that he has not used Kubernetes, has
-    not written Go or Rust, has not built mobile apps, and has not managed anyone, without
-    softening any of it into a near-miss.
+    not written Go or Rust, has not built mobile apps, and has not worked on distributed systems
+    where consensus, sharding, or partition tolerance is the central difficulty, without softening
+    any of it into a near-miss.
 
 - id: ans-009
   question: "What has Tanish changed his mind about, engineering-wise?"
