@@ -357,7 +357,7 @@ export default function NoiselessPage() {
               <ExternalLink size={14} />
               Try Noiseless
             </a>
-            <a href="https://github.com/tnahata/twitterbot"
+            <a href="https://github.com/tnahata/noiseless"
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-6 py-3 transition-opacity duration-200 hover:opacity-80"
               style={{ border: '1px solid rgba(99,102,241,0.3)', color: 'rgba(129,140,248,0.85)', fontFamily: 'var(--font-body)', fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', borderRadius: '3px', backgroundColor: 'transparent' }}>
