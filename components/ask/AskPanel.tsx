@@ -142,9 +142,11 @@ function RefusalBlock({ reason, text }: { reason: string; text: string }) {
 function GateBlock({
   reason,
   resetsAt,
+  pathname,
 }: {
   reason: 'sign_in_required' | 'rate_limited';
   resetsAt: string | null;
+  pathname: string;
 }) {
   return (
     <div
@@ -166,7 +168,7 @@ function GateBlock({
         {reason === 'rate_limited' ? `${refusalCopy(reason)} Resets ${formatResetTime(resetsAt)}.` : refusalCopy(reason)}
       </p>
       {reason === 'sign_in_required' && (
-        <SignInButton mode="modal">
+        <SignInButton mode="modal" fallbackRedirectUrl={pathname}>
           <button
             type="button"
             style={{
@@ -241,7 +243,15 @@ function ErrorBlock({ message, onRetry }: { message: string; onRetry: () => void
   );
 }
 
-function TurnBlock({ turn, onRetry }: { turn: ConversationTurn; onRetry: (question: string) => void }) {
+function TurnBlock({
+  turn,
+  onRetry,
+  pathname,
+}: {
+  turn: ConversationTurn;
+  onRetry: (question: string) => void;
+  pathname: string;
+}) {
   const showThinkingLine = turn.response === null || (turn.response.kind === 'answer' && turn.response.text === '' && !turn.response.done);
 
   return (
@@ -250,7 +260,7 @@ function TurnBlock({ turn, onRetry }: { turn: ConversationTurn; onRetry: (questi
       {showThinkingLine && <ThinkingLine />}
       {turn.response?.kind === 'answer' && <AnswerBlock text={turn.response.text} done={turn.response.done} />}
       {turn.response?.kind === 'refusal' && <RefusalBlock reason={turn.response.reason} text={turn.response.text} />}
-      {turn.response?.kind === 'gate' && <GateBlock reason={turn.response.reason} resetsAt={turn.response.resetsAt} />}
+      {turn.response?.kind === 'gate' && <GateBlock reason={turn.response.reason} resetsAt={turn.response.resetsAt} pathname={pathname} />}
       {turn.response?.kind === 'error' && <ErrorBlock message={turn.response.message} onRetry={() => onRetry(turn.question)} />}
     </div>
   );
@@ -428,7 +438,7 @@ export default function AskPanel({ chat, pathname, reducedMotion, expanded, onTo
                 </div>
               </div>
             ) : (
-              chat.turns.map((turn) => <TurnBlock key={turn.id} turn={turn} onRetry={submit} />)
+              chat.turns.map((turn) => <TurnBlock key={turn.id} turn={turn} onRetry={submit} pathname={pathname} />)
             )}
           </div>
         </div>
