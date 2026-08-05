@@ -284,7 +284,7 @@
   question: "Does Tanish contribute to any open source projects besides his own?"
   stratum: unanswerable-fair
   expect: refuse
-  note: code-hybrid-fit.md only says HybridFit is his one open source project; outside contributions are unaddressed.
+  note: The corpus says his own repos are public; outside contributions are unaddressed. Plain refusal expected.
 
 - id: unans-009
   question: "What does Tanish want to be doing five years from now?"

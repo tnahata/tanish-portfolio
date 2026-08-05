@@ -46,6 +46,14 @@ is no way to add one purely through configuration. That has been the right trade
 the number of disciplines grows slowly and the cost of a schema that lies about its contents does
 not.
 
+## The enrollment model
+
+Multi-plan enrollment rests on one design decision: a plan does not own dates. Enrollment is the
+join between a plan and a user's calendar, carrying its own start date, current position, and
+per-workout overrides and logs. Because the plan itself stays date-free, a strength block and a
+half-marathon build can overlap in the same weeks without either assuming it owns the calendar,
+and a plan can be paused or shifted without rewriting the sessions inside it.
+
 ## The N+1 problem and caching
 
 Early on, core data fetches issued a database query for every enrolled plan a user had: the classic
