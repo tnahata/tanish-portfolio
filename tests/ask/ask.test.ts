@@ -134,7 +134,7 @@ function arrangeReadyPath(input: {
   vi.mocked(filterModule.preFilter).mockReturnValue(null);
   vi.mocked(logModule.checkGate).mockResolvedValue(null);
   vi.mocked(retrieveModule.retrieve).mockResolvedValue(chunks);
-  vi.mocked(retrieveModule.grade).mockReturnValue({ verdict: 'strong', grounding });
+  vi.mocked(retrieveModule.grade).mockReturnValue({ verdict: 'strong', grounding, chunks });
   vi.mocked(logModule.claimTurn).mockResolvedValue({ turnId: input.turnId ?? 'turn-1' });
   vi.mocked(logModule.loadHistory).mockResolvedValue(history);
   vi.mocked(promptModule.buildPrompt).mockReturnValue(parts);
@@ -291,8 +291,8 @@ describe('prepareTurn: branching', () => {
     expect(logModule.claimTurn).not.toHaveBeenCalled();
   });
 
-  it('returns a ready turn with a turnId, the assembled prompt, and the grounded chunks on strong grounding', async () => {
-    const { grounding, parts } = arrangeReadyPath({ turnId: 'turn-strong' });
+  it('returns a ready turn with a turnId, the assembled prompt, and every strong chunk (not just the grounded, capped context) on strong grounding', async () => {
+    const { chunks, parts } = arrangeReadyPath({ turnId: 'turn-strong' });
 
     const result = await prepareTurn({ question: 'What does he build?', identity: anonIdentity });
 
@@ -300,7 +300,7 @@ describe('prepareTurn: branching', () => {
       kind: 'ready',
       turnId: 'turn-strong',
       prompt: parts,
-      retrieved: grounding.chunks,
+      retrieved: chunks,
     });
   });
 

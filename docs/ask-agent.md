@@ -110,6 +110,13 @@ back unanswerable with an empty stream. The two chunks that answer it,
 `T_STRONG`; the ceiling severed them. At k=8 the same question answers correctly and every refusal
 path is unchanged. Sections average 858 chars, so a broad question needs several of them.
 
+**`MAX_CONTEXT_CHUNKS_PER_DOC = 3` caps the grounded context per file, not the verdict.** "How does
+Tanish think about engineering?" retrieved eight chunks that all cleared `T_STRONG`: three from
+`philosophy.md` and five near-duplicate chunks from `identity.md` crowding them out. Capping keeps
+each file's best three before the prompt is built. `retrieved` in the database still logs every
+chunk that cleared `T_STRONG`, uncapped, so the gap query keeps describing what was fetched, not
+what the model saw.
+
 **Answerability is judged by the model.** Similarity measures aboutness, not containment: "what is
 his salary at ESMON" scores high against the ESMON chunks and none of them answer it. The model
 emits a per-request random marker instead of answering when the context does not contain the
@@ -268,7 +275,8 @@ so a 429 would render a generic error instead of the inline sign-in interstitial
 ## Config
 
 One `lib/ask/config.ts`, code constants, never env: embed model and dims, chat model, `TOP_K = 8`,
-`T_STRONG = 0.40`, `T_FLOOR = 0.25`, daily limit 20, free turns 1, history turns 3 and char cap.
+`T_STRONG = 0.40`, `T_FLOOR = 0.25`, `MAX_CONTEXT_CHUNKS_PER_DOC = 3`, daily limit 20, free turns 1,
+history turns 3 and char cap.
 A threshold that differs between environments is unreproducible.
 
 ## Files

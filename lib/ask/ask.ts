@@ -82,14 +82,14 @@ export async function prepareTurn(input: {
 
   const claim = await claimTurn({ identity, question, model: CHAT_MODEL });
   if ('gated' in claim) {
-    return gateForFree(identity, question, claim.gated, [...grading.grounding.chunks]);
+    return gateForFree(identity, question, claim.gated, [...grading.chunks]);
   }
 
   const history = await loadHistory(identity);
 
   try {
     const prompt = buildPrompt({ question, grounding: grading.grounding, history });
-    return { kind: 'ready', turnId: claim.turnId, prompt, retrieved: [...grading.grounding.chunks] };
+    return { kind: 'ready', turnId: claim.turnId, prompt, retrieved: [...grading.chunks] };
   } catch (error) {
     if (error instanceof ForgedDelimiterError) {
       return { kind: 'refused', reason: 'injection', text: refusalCopy('injection') };

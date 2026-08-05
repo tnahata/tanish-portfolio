@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { EMBED_DIMS, EMBED_MODEL, T_FLOOR, T_STRONG } from '../../lib/ask/config';
+import { EMBED_DIMS, EMBED_MODEL, MAX_CONTEXT_CHUNKS_PER_DOC, T_FLOOR, T_STRONG } from '../../lib/ask/config';
 import * as embedModule from '../../lib/ask/embed';
 import { grade, IngestConfigMismatchError, retrieve } from '../../lib/ask/retrieve';
 import type { ChunkMetadata, RetrievedChunk } from '../../lib/ask/types';
@@ -27,8 +27,8 @@ function metadata(overrides: Partial<ChunkMetadata> = {}): ChunkMetadata {
   };
 }
 
-function chunk(score: number, id = 'c'): RetrievedChunk {
-  return { id, content: 'x', score, metadata: metadata() };
+function chunk(score: number, id = 'c', file = 'about.md'): RetrievedChunk {
+  return { id, content: 'x', score, metadata: metadata({ file }) };
 }
 
 describe('grade', () => {
@@ -73,6 +73,87 @@ describe('grade', () => {
     const result = grade([]);
 
     expect(result.verdict).toBe('off_topic');
+  });
+
+  it('caps a document with 5 strong chunks down to its best 3, in score order, in the grounded context', () => {
+    const result = grade([
+      chunk(0.9, 'identity-1', 'identity.md'),
+      chunk(0.8, 'identity-2', 'identity.md'),
+      chunk(0.7, 'identity-3', 'identity.md'),
+      chunk(0.6, 'identity-4', 'identity.md'),
+      chunk(0.5, 'identity-5', 'identity.md'),
+    ]);
+
+    expect(result.verdict).toBe('strong');
+    if (result.verdict === 'strong') {
+      expect(result.grounding.chunks.map((c) => c.id)).toEqual(['identity-1', 'identity-2', 'identity-3']);
+    }
+  });
+
+  it('leaves chunks from other documents untouched and keeps overall score order when a cap trims one document', () => {
+    const result = grade([
+      chunk(0.9, 'identity-1', 'identity.md'),
+      chunk(0.85, 'philosophy-1', 'philosophy.md'),
+      chunk(0.8, 'identity-2', 'identity.md'),
+      chunk(0.7, 'identity-3', 'identity.md'),
+      chunk(0.65, 'philosophy-2', 'philosophy.md'),
+      chunk(0.6, 'identity-4', 'identity.md'),
+      chunk(0.5, 'identity-5', 'identity.md'),
+    ]);
+
+    expect(result.verdict).toBe('strong');
+    if (result.verdict === 'strong') {
+      expect(result.grounding.chunks.map((c) => c.id)).toEqual([
+        'identity-1',
+        'philosophy-1',
+        'identity-2',
+        'identity-3',
+        'philosophy-2',
+      ]);
+    }
+  });
+
+  it('keeps the verdict decided by the top score alone: still strong even though the cap removes chunks from the context', () => {
+    const chunks = [
+      chunk(0.9, 'identity-1', 'identity.md'),
+      chunk(0.8, 'identity-2', 'identity.md'),
+      chunk(0.7, 'identity-3', 'identity.md'),
+      chunk(0.6, 'identity-4', 'identity.md'),
+      chunk(0.5, 'identity-5', 'identity.md'),
+    ];
+
+    const result = grade(chunks);
+
+    expect(result.verdict).toBe('strong');
+    if (result.verdict === 'strong') {
+      expect(result.grounding.topScore).toBe(0.9);
+      expect(result.grounding.chunks.length).toBeLessThan(chunks.length);
+      expect(result.chunks.length).toBe(chunks.length);
+    }
+  });
+
+  it('does not cap a document with MAX_CONTEXT_CHUNKS_PER_DOC or fewer strong chunks', () => {
+    const result = grade([chunk(0.9, 'a', 'identity.md'), chunk(0.8, 'b', 'identity.md'), chunk(0.7, 'c', 'identity.md')]);
+
+    expect(result.verdict).toBe('strong');
+    if (result.verdict === 'strong') {
+      expect(result.grounding.chunks).toHaveLength(MAX_CONTEXT_CHUNKS_PER_DOC);
+    }
+  });
+
+  it('logs every strong chunk uncapped on `chunks`, even though `grounding.chunks` is capped', () => {
+    const result = grade([
+      chunk(0.9, 'identity-1', 'identity.md'),
+      chunk(0.8, 'identity-2', 'identity.md'),
+      chunk(0.7, 'identity-3', 'identity.md'),
+      chunk(0.6, 'identity-4', 'identity.md'),
+    ]);
+
+    expect(result.verdict).toBe('strong');
+    if (result.verdict === 'strong') {
+      expect(result.chunks.map((c) => c.id)).toEqual(['identity-1', 'identity-2', 'identity-3', 'identity-4']);
+      expect(result.grounding.chunks.map((c) => c.id)).toEqual(['identity-1', 'identity-2', 'identity-3']);
+    }
   });
 });
 

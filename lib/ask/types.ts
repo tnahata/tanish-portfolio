@@ -65,8 +65,11 @@ export interface PriorTurn {
   answer: string | null;
 }
 
-/** The outcome of grading. `strong` carries the brand; the others carry the reason to log. */
+/**
+ * The outcome of grading. `strong` carries the brand for what reaches the prompt (`grounding`,
+ * per-document capped) and what gets logged (`chunks`, every chunk that cleared T_STRONG).
+ */
 export type Grading =
-  | { verdict: 'strong'; grounding: StrongGrounding }
+  | { verdict: 'strong'; grounding: StrongGrounding; chunks: RetrievedChunk[] }
   | { verdict: 'weak'; reason: Extract<LockedReason, 'no_grounding'>; chunks: RetrievedChunk[] }
   | { verdict: 'off_topic'; reason: Extract<LockedReason, 'off_topic'>; chunks: RetrievedChunk[] };

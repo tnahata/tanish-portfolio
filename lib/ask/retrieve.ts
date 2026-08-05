@@ -1,6 +1,6 @@
 import { asc, cosineDistance, sql } from 'drizzle-orm';
 
-import { EMBED_DIMS, EMBED_MODEL, T_FLOOR, T_STRONG, TOP_K } from './config';
+import { EMBED_DIMS, EMBED_MODEL, MAX_CONTEXT_CHUNKS_PER_DOC, T_FLOOR, T_STRONG, TOP_K } from './config';
 import { getDb } from './db';
 import { embedOne } from './embed';
 import { chunks as chunksTable } from './schema';
@@ -54,9 +54,21 @@ export async function retrieve(question: string): Promise<RetrievedChunk[]> {
   return rows;
 }
 
+/** Keeps the best MAX_CONTEXT_CHUNKS_PER_DOC chunks per source file, in the input's score order. */
+function capPerDocument(chunks: RetrievedChunk[]): RetrievedChunk[] {
+  const keptPerDoc = new Map<string, number>();
+
+  return chunks.filter((chunk) => {
+    const kept = keptPerDoc.get(chunk.metadata.file) ?? 0;
+    if (kept >= MAX_CONTEXT_CHUNKS_PER_DOC) return false;
+    keptPerDoc.set(chunk.metadata.file, kept + 1);
+    return true;
+  });
+}
+
 /**
- * Turns scores into a verdict. The top score decides; the context is every chunk at or above
- * T_STRONG, so a low scorer riding along on a good query never reaches the prompt.
+ * Turns scores into a verdict. The top score decides; the logged `chunks` are every chunk at or
+ * above T_STRONG, and `grounding` is that same set capped per document before it reaches the prompt.
  */
 export function grade(chunks: RetrievedChunk[]): Grading {
   const top = chunks[0];
@@ -70,7 +82,8 @@ export function grade(chunks: RetrievedChunk[]): Grading {
   }
 
   const strongChunks = chunks.filter((chunk) => chunk.score >= T_STRONG);
-  const grounding = { chunks: strongChunks, topScore: top.score } as unknown as StrongGrounding;
+  const contextChunks = capPerDocument(strongChunks);
+  const grounding = { chunks: contextChunks, topScore: top.score } as unknown as StrongGrounding;
 
-  return { verdict: 'strong', grounding };
+  return { verdict: 'strong', grounding, chunks: strongChunks };
 }

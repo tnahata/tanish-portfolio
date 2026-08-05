@@ -127,7 +127,7 @@ describe('evaluateQuestion: logging mirrors prepareTurn', () => {
     const chunks = [chunk('identity#role', 0.72)];
     const grounding = { chunks, topScore: 0.72 } as unknown as import('../../lib/ask/types').StrongGrounding;
     vi.mocked(retrieveModule.retrieve).mockResolvedValue(chunks);
-    vi.mocked(retrieveModule.grade).mockReturnValue({ verdict: 'strong', grounding });
+    vi.mocked(retrieveModule.grade).mockReturnValue({ verdict: 'strong', grounding, chunks });
     const gate: Gated = { reason: 'rate_limited', resetsAt: null };
     vi.mocked(logModule.claimTurn).mockResolvedValue({ gated: gate });
     const question = entry();

@@ -15,6 +15,9 @@ export const TOP_K = 8;
 export const T_STRONG = 0.4;
 export const T_FLOOR = 0.25;
 
+/** Per-document ceiling on the strong-grounded context, so one file can't crowd out the rest. */
+export const MAX_CONTEXT_CHUNKS_PER_DOC = 3;
+
 /** Generations allowed before sign-in, per anonymous cookie. */
 export const FREE_TURNS = 1;
 

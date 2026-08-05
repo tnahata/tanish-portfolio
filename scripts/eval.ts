@@ -247,7 +247,7 @@ export async function evaluateQuestion(
         identity,
         question: entry.question,
         reason: claim.gated.reason,
-        retrieved: [...grading.grounding.chunks],
+        retrieved: [...grading.chunks],
       });
       return { actual: claim.gated.reason, topScore, answer: null, errorMessage: null };
     }
@@ -269,7 +269,7 @@ export async function evaluateQuestion(
     const result = await outcome;
     counter.generations += 1;
 
-    const retrieved = [...grading.grounding.chunks];
+    const retrieved = [...grading.chunks];
 
     if (result.unanswerable) {
       await lockTurn({ turnId: claim.turnId, reason: 'unanswerable', retrieved });
