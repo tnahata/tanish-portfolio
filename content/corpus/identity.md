@@ -7,11 +7,11 @@ route: /
 
 ## Name and current role
 
-Tanish Nahata is a software engineer. He works at FedEx Corp, where he interned as a Full Stack
-Engineer Intern from June to August 2023, joined full-time as a Full Stack Engineer in June 2024,
-and became a Full Stack Engineer II in December 2025. His team owns an internal operations
-management application used by facility managers and district engineers across North America and
-Europe.
+Tanish Nahata is a software engineer. He was at FedEx Corp until the end of June 2026, where he
+interned as a Full Stack Engineer Intern from June to August 2023, joined full-time as a Full Stack
+Engineer in June 2024, and became a Full Stack Engineer II in December 2025. His team owned an
+internal operations management application used by facility managers and district engineers across
+North America and Europe.
 
 ## What he builds
 
@@ -52,9 +52,10 @@ nobody else was going to.
 
 ## Current situation
 
-He works out of San Francisco and is currently the Full Stack Engineer II at FedEx Corp described
-above. The team worth reaching him about is one building AI-native products or developer tools,
-where the role carries real ownership rather than a slice of one. His formal education is a
+He is based in San Francisco. The Full Stack Engineer II role at FedEx Corp described above ended at
+the end of June 2026; why it ended is not something this agent knows or will guess at. The team
+worth reaching him about is one building AI-native products or developer tools, where the role
+carries real ownership rather than a slice of one. His formal education is a
 computer science degree from the University of Wisconsin-Madison. Visa status, remote preference,
 and exact start timing are covered in the FAQ.
 

@@ -9,7 +9,7 @@ route: /stack
 
 TypeScript, Python, Java, SQL.
 
-Java is the language he has written the most production code in, because it is the language of the
+Java is the language he has written the most production code in, because it was the language of the
 day job: two years of Spring Boot services in an internal operations platform at FedEx, plus ESMON,
 which is Java 17 on JavaFX. It is the language he is most confident debugging under pressure.
 

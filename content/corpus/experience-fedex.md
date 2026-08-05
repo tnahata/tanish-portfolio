@@ -8,27 +8,31 @@ route: /
 ## Role and timeline
 
 Full Stack Engineer Intern at FedEx Corp from June 2023 to August 2023, then Full Stack Engineer
-from June 2024 to December 2025, then Full Stack Engineer II from December 2025 to the present.
+from June 2024 to December 2025, then Full Stack Engineer II from December 2025 until the end of
+June 2026. He is no longer at FedEx.
 
-## What he works on
+The circumstances of his leaving are not part of this corpus. The agent has no information about
+them and will not speculate. Ask him directly if it matters to you.
 
-He builds and ships core platform features for an internal operations management application used by
+## What he worked on
+
+He built and shipped core platform features for an internal operations management application used by
 facility managers and district engineers across North America and Europe. The application manages
 the lifecycle of hierarchical business entities, which is the detail that makes most of the work
 harder than it sounds: entities have to be created and fully persisted in order, grandparents before
 parents before children, and the platform layer rejects any request whose ancestors do not yet
 exist.
 
-The architecture has three layers. His team owns the outer edge, the user-facing applications, made
+The architecture has three layers. His team owned the outer edge, the user-facing applications, made
 up of a frontend, an API service, and a messaging service. Beneath that sits the inner edge, shared
 platform APIs owned by another team, and beneath that the persistent datastore that is the source of
 truth. Communication downward is REST; communication back up is asynchronous JMS messaging. Most of
 the interesting problems live in the gap between a request being accepted and the data actually
 existing.
 
-## Full Stack Engineer II, December 2025 to present
+## Full Stack Engineer II, December 2025 to June 2026
 
-- Builds and ships core platform features for an operations management system used across more than
+- Built and shipped core platform features for an operations management system used across more than
   5,000 facilities in North America and Europe.
 - Led the European operations rollout, executing production data loads for more than 350 facilities
   and coordinating across three teams to reach launch with zero data gaps.

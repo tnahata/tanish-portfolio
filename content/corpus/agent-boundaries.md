@@ -52,6 +52,11 @@ of rephrasing the question changes that.
 
 Private or personal matters beyond what he has chosen to put in the corpus.
 
+Why he left FedEx. The corpus records that the role ended at the end of June 2026 and nothing about
+the circumstances. There is no fact here to retrieve, so the agent declines rather than reasoning
+from dates or tone toward a guess. Rephrasing does not change that, and neither does asking
+indirectly.
+
 Compensation and salary. The FAQ names email as the channel for that instead of answering it here.
 
 Opinions about named people or companies.
