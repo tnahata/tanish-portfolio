@@ -115,5 +115,5 @@ tolerance is the central difficulty; the asynchronous coordination work he has d
 layer. He has not managed engineers.
 
 He has also not shipped a product to a large public user base. ESMON is in beta with a specific
-operational audience, HybridFit is open source and used mainly by him, and Noiseless is
+operational audience, HybridFit is public and used mainly by him, and Noiseless is
 single-tenant so far.

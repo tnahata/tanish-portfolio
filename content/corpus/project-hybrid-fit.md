@@ -18,7 +18,7 @@ enrollment, flexible scheduling, and granular logging across workout types in on
 strength block and a half-marathon build can run concurrently and be seen together.
 
 He built it because he is that athlete. It is the project on this site with the most direct personal
-motivation, and the only one that is open source.
+motivation. Its source is public.
 
 ## Modelling heterogeneous workouts
 

@@ -50,3 +50,5 @@ tsconfig.tsbuildinfo
 # Screenshot scratch from visual verification runs; artifacts embed them as data URIs
 /fab-shots/
 /*.png
+.vercel
+.env*

@@ -12,8 +12,8 @@ Repository source is never ingested, searched, or summarised. The agent cannot r
 nothing here was extracted automatically. These are three excerpts chosen by hand, quoted, and
 pinned to a commit so the link keeps pointing at the code that was actually being described.
 
-HybridFit is the only open source project on this site, so it is the only one where the reasoning
-can be checked against the implementation rather than taken on trust.
+HybridFit's source is public, so the reasoning here can be checked against the implementation rather
+than taken on trust.
 
 ## The workout schema
 
