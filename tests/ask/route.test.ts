@@ -419,6 +419,42 @@ describe('POST /api/ask: identity and the cookie', () => {
     expect(mintedId).toBe(identityArg?.anonId);
     expect(mintedId).not.toBe(forgedId);
   });
+
+  it('resolves a real Clerk session to the signed-in identity, not the anon cookie path', async () => {
+    arrangeHuman();
+    arrangeSignedIn('user_3HTOAhWayDnUCNKjTfM4cNFitYW');
+    vi.mocked(askModule.prepareTurn).mockResolvedValue(refusedTurn());
+
+    const response = await POST(
+      askRequest({ question: 'What does he build?' }, { cookie: `${ANON_COOKIE_NAME}=${randomUUID()}` }),
+    );
+
+    expect(vi.mocked(askModule.prepareTurn)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identity: { userId: 'user_3HTOAhWayDnUCNKjTfM4cNFitYW', anonId: null },
+      }),
+    );
+    expect(anonCookieHeader(response)).toBeUndefined();
+  });
+
+  it('logs loudly and still resolves anonymous when auth() throws, instead of crashing the route', async () => {
+    arrangeHuman();
+    const authError = new Error('Clerk: auth() was called but Clerk can\'t detect usage of clerkMiddleware()');
+    vi.mocked(auth).mockRejectedValue(authError);
+    vi.mocked(askModule.prepareTurn).mockResolvedValue(refusedTurn());
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await POST(askRequest({ question: 'What does he build?' }));
+
+    expect(response.status).toBe(200);
+    expect(vi.mocked(askModule.prepareTurn)).toHaveBeenCalledWith(
+      expect.objectContaining({ identity: expect.objectContaining({ userId: null }) }),
+    );
+    expect(anonCookieHeader(response)).toBeDefined();
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Clerk auth() failed'), authError);
+
+    consoleError.mockRestore();
+  });
 });
 
 describe('POST /api/ask: completion and failure', () => {

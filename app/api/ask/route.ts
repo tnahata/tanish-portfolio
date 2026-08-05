@@ -69,12 +69,18 @@ async function parseAskRequest(request: Request): Promise<{ question: string } |
   return parsed.success ? parsed.data : null;
 }
 
-/** A thrown or unconfigured Clerk auth() is treated as anonymous; it must never crash the route. */
+/**
+ * A signed-out visitor is `{ userId: null }`, never a throw; auth() only throws when
+ * clerkMiddleware() did not run for this request, which is a deployment bug, not a visitor
+ * state. Logged loudly so it pages an operator instead of quietly counting every user as
+ * anonymous forever; still resolves null so the route keeps its 200-always contract.
+ */
 async function resolveClerkUserId(): Promise<string | null> {
   try {
     const { userId } = await auth();
     return userId;
-  } catch {
+  } catch (error) {
+    console.error('Clerk auth() failed; treating this request as anonymous:', error);
     return null;
   }
 }
