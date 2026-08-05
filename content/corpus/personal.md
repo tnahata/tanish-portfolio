@@ -1,6 +1,6 @@
 ---
 id: personal
-title: Outside the Terminal
+title: What Tanish Is Like Outside Work
 kind: page
 route: /
 ---

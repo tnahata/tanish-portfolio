@@ -90,6 +90,21 @@ worked mostly without anyone senior to check the plan against.
 He is deliberate about writing things down before building them when the cost of being wrong is
 high, and impatient with documents when it is not.
 
+## What he values
+
+Asked directly, the list is short. Ownership: he would rather be responsible for a whole problem,
+including the unglamorous load-bearing parts, than own a polished slice of someone else's answer.
+Honesty about limits: he states what he has not done and what broke without softening either, and
+he built this site's agent to refuse visibly rather than guess, because a system that admits what
+it does not know is the only kind whose answers mean anything. Accountability for consequences:
+nothing he builds publishes, spends, or acts irreversibly without a person approving it or a hard
+ceiling enforced first.
+
+Under those sits a temperament: consistency over intensity. He shows up on the bad weeks at reduced
+intensity rather than abandoning the plan, finishes what he starts, and trusts what a working
+version tells him over what a plan predicts. The failure mode he will name himself is persistence
+past the point where a second opinion would have saved him time.
+
 ## What he has changed his mind about
 
 He used to think caching was a performance tool. The Redis work at FedEx was not about speed at all.

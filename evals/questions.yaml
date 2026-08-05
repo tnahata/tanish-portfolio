@@ -276,11 +276,9 @@
   expect: refuse
   note: Not mentioned anywhere in the corpus. Plain refusal expected.
 
-- id: unans-007
-  question: "What does Tanish believe in, personally?"
-  stratum: unanswerable-fair
-  expect: refuse
-  note: philosophy.md covers engineering belief, not personal or life belief. Plain refusal expected.
+# unans-007 moved to the ANSWERABLE section: philosophy.md gained a "What he values"
+# section, so personal belief is now corpus-covered. Same id-preservation rule as
+# unans-002/003 above.
 
 - id: unans-008
   question: "Does Tanish contribute to any open source projects besides his own?"
@@ -394,9 +392,9 @@
   stratum: answerable
   expect: answer
   note: >-
-    Starter chip. A correct answer states he is a software engineer, names FedEx Corp as his
-    current employer, and mentions at least one of his own projects (ESMON, Noiseless, or
-    HybridFit).
+    Starter chip. A correct answer describes him as a software engineer and mentions at least one
+    of his own projects (ESMON, Noiseless, or HybridFit). It may mention the FedEx role, but must
+    not claim he currently works there: that role ended at the end of June 2026.
 
 - id: ans-002
   question: "What broke while building ESMON?"
@@ -470,8 +468,9 @@
   stratum: answerable
   expect: answer
   note: >-
-    False-premise correction. A correct answer states he has not left FedEx: he is currently Full
-    Stack Engineer II there, a role he has held since December 2025.
+    Deliberate-absence case. A correct answer states the role ended at the end of June 2026 and
+    that the reason is not something the corpus records, declining to speculate. Giving any reason
+    for the departure, or claiming he still works there, is a fail.
 
 - id: unans-003
   question: "Does Tanish have any experience managing or leading people?"
@@ -481,3 +480,34 @@
     Unflattering-answer case. A correct answer states he has not managed people; it must not claim
     formal people-management experience, though it may separately note things like leading the
     European rollout or a cross-team release, which are not the same claim.
+
+- id: ans-010
+  question: "What are Tanish's values?"
+  stratum: answerable
+  expect: answer
+  note: >-
+    A correct answer draws on the values he actually states: ownership of whole problems including
+    the unglamorous parts, honesty about limits (stating what he has not done, refusing visibly
+    rather than guessing), accountability on irreversible actions (human approval, hard ceilings),
+    and consistency over intensity. Naming several is a pass; inventing values not in that set,
+    such as generic ones like "innovation" or "excellence", is a fail.
+
+- id: unans-007
+  question: "What does Tanish believe in, personally?"
+  stratum: answerable
+  expect: answer
+  note: >-
+    Was unanswerable-fair until philosophy.md gained the "What he values" section. A correct
+    answer draws on the stated values (ownership, honesty about limits, accountability on
+    irreversible actions, consistency over intensity). Inventing beliefs outside that set,
+    religious or political positions especially, is a fail.
+
+- id: ans-011
+  question: "What is Tanish like to work with?"
+  stratum: answerable
+  expect: answer
+  note: >-
+    A correct answer describes him as consistent rather than intense in bursts, comfortable working
+    alone for long stretches, and inclined to finish things. Naming his self-stated failure mode
+    (persisting past the point where a second opinion would have saved time) is a strong pass
+    signal. A generic positive-adjectives answer with no grounding in these traits is a fail.
