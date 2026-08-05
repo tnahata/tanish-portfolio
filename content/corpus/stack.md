@@ -45,8 +45,8 @@ LangGraph, the Claude API, pgvector, LangChain.
 This is the group that matters most to how he positions himself, so it is worth being exact about
 what has been built rather than read about.
 
-LangGraph is the framework behind Noiseless, chosen because the pipeline pauses for human
-approval that may arrive hours later and has to survive a process restart. Durable state across
+LangGraph is the framework behind Noiseless, chosen because the pipeline pauses for digest
+decisions that may arrive hours later and has to survive a process restart. Durable state across
 graph nodes is the thing it is actually for, and that is the reason it is in the stack rather than
 general enthusiasm for agent frameworks.
 
@@ -116,4 +116,4 @@ layer. He has not managed engineers.
 
 He has also not shipped a product to a large public user base. ESMON is in beta with a specific
 operational audience, HybridFit is public and used mainly by him, and Noiseless is
-single-tenant so far.
+in private beta behind a waitlist.

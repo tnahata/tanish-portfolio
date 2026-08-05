@@ -22,8 +22,8 @@ is AI agents, which is where most of his attention has gone recently.
 The systems he builds tend to share a shape. Something structured has to be pulled out of something
 messy, and then a person has to be able to trust the result. ESMON turns binary recordings off
 locomotive monitoring devices into reports an operations engineer can act on. Noiseless runs a
-search-rank-draft pipeline that stops and waits for a human before it publishes anything. HybridFit
-takes workouts that have nothing structurally in common and models them so one interface can log
+search-rank-digest pipeline that surfaces high-signal conversations and learns from every decision
+a person makes on the digest. HybridFit takes workouts that have nothing structurally in common and models them so one interface can log
 all of them.
 
 He treats AI as a substrate for building software rather than a feature bolted onto software that
@@ -36,7 +36,7 @@ He is strongest on the parts of a system that are load-bearing and unglamorous: 
 coordination between services that do not share a clock, failure modes, and the boundary where an
 automated process has to hand control back to a person. His instinct on an ambiguous problem is to
 find the constraint that actually determines the design, then build outward from it. Offline-first
-on ESMON and approval-before-publish on Noiseless are both examples: neither is a feature,
+on ESMON and decisions-as-durable-state on Noiseless are both examples: neither is a feature,
 both are the thing the architecture is organised around.
 
 He is a generalist by circumstance rather than by preference. Most of his projects have been built

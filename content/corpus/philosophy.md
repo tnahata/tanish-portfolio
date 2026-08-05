@@ -29,7 +29,7 @@ ambiguity to the edges where it can be resolved once instead of everywhere.
 
 Noiseless is the clearest case. The pipeline owns orchestration, the chat surface owns the
 user interface, and the database is the only state the two share. That boundary is the entire
-design. Widen it, and approval decisions get lost or posts get duplicated, because two systems would
+design. Widen it, and decisions get lost or digests get duplicated, because two systems would
 be making assumptions about state neither of them owns.
 
 In ESMON it showed up smaller and more awkwardly. Several tabs needed independent filter state while
@@ -61,9 +61,9 @@ who is accountable for the output.
 
 What this rules out, concretely:
 
-Agents that act without a human in the loop on anything irreversible. Noiseless has published
-zero posts without explicit human approval, and that number is the point of the project rather than
-a statistic about it.
+Agents that act without a human in the loop on anything irreversible. When Noiseless still
+drafted replies, zero were ever published without explicit approval; its current form removes the
+publish surface entirely and optimises what a person sees instead of what they post.
 
 Systems that spend money without a hard ceiling enforced before the work starts. A runloop bug
 should cost a refusal, not a bill.
@@ -78,9 +78,9 @@ most direct way he knows to argue them.
 ## How he works
 
 He starts by trying to find the constraint that determines the design, because most other decisions
-follow from it and arguing about them first wastes time. Offline-first on ESMON, approval-before-
-publish on Noiseless, and one heterogeneous workout schema on HybridFit each fixed most of the
-architecture the moment they were settled.
+follow from it and arguing about them first wastes time. Offline-first on ESMON, decisions as
+durable state on Noiseless, and one heterogeneous workout schema on HybridFit each fixed most of
+the architecture the moment they were settled.
 
 When he is stuck, he builds the smallest thing that will produce a real signal and uses it himself.
 A lot of ESMON's interface came out of that loop: build it, use it, notice what feels wrong, change

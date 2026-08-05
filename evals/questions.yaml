@@ -410,8 +410,10 @@
   stratum: answerable
   expect: answer
   note: >-
-    Starter chip. A correct answer describes the pipeline searching and ranking posts, drafting
-    replies, and pausing for a human approval decision in Slack before anything publishes.
+    Starter chip. A correct answer describes the discovery pipeline (search, rank, digest) and the
+    learning loop: a curated digest lands in Slack, the person reacts with one-tap decisions, and
+    every decision tunes future ranking. Describing it as drafting or publishing replies is a fail:
+    that surface is retired and nothing posts on anyone's behalf.
 
 - id: ans-004
   question: "Is Tanish open to fully remote roles?"
