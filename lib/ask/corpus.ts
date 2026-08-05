@@ -32,6 +32,9 @@ interface FenceState {
 
 const H2_HEADING = /^## (.+)$/;
 const FENCE_MARKER = /^(`{3,}|~{3,})/;
+const HTML_COMMENT = /<!--[\s\S]*?-->/g;
+const BLANK_LINE_RUN = /\n{3,}/g;
+const TRAILING_LINE_SPACE = /[ \t]+$/gm;
 
 /**
  * Reads every markdown file in `dir`, validates frontmatter with zod, and splits each into one
@@ -141,7 +144,16 @@ function nextFenceState(fence: FenceState | null, marker: string, line: string):
 }
 
 function finalizeSection(section: { heading: string; lines: string[] }): Section {
-  return { heading: section.heading, body: section.lines.join('\n').trim() };
+  return { heading: section.heading, body: stripHtmlComments(section.lines.join('\n')) };
+}
+
+/** Removes `<!-- -->` comments; a comment on its own paragraph leaves no gap behind. */
+function stripHtmlComments(body: string): string {
+  return body
+    .replace(HTML_COMMENT, '')
+    .replace(TRAILING_LINE_SPACE, '')
+    .replace(BLANK_LINE_RUN, '\n\n')
+    .trim();
 }
 
 /** Slugifies a heading for use in a chunk id: lowercase, non-alphanumerics to single dashes. */

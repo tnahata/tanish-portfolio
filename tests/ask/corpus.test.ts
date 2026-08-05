@@ -226,6 +226,121 @@ Identical body text.
     expect(a?.content).toBe(b?.content);
     expect(a?.metadata.contentHash).not.toBe(b?.metadata.contentHash);
   });
+
+  it('strips an HTML comment inside a section, leaving no double blank line behind', async () => {
+    await writeCorpusFile(
+      dir,
+      'note.md',
+      `${FRONTMATTER('note')}
+## Section
+
+Prose before.
+
+<!-- do not say this publicly -->
+
+Prose after.
+`,
+    );
+
+    const chunks = loadCorpus(dir);
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].content).toBe('Prose before.\n\nProse after.');
+  });
+
+  it('strips a multi-line HTML comment', async () => {
+    await writeCorpusFile(
+      dir,
+      'multiline.md',
+      `${FRONTMATTER('multiline')}
+## Section
+
+Prose before.
+
+<!--
+This is a
+multi-line comment.
+-->
+
+Prose after.
+`,
+    );
+
+    const chunks = loadCorpus(dir);
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].content).toBe('Prose before.\n\nProse after.');
+  });
+
+  it('strips two comments in the same section', async () => {
+    await writeCorpusFile(
+      dir,
+      'two-comments.md',
+      `${FRONTMATTER('two-comments')}
+## Section
+
+First line.
+
+<!-- comment one -->
+
+Middle line.
+
+<!-- comment two -->
+
+Last line.
+`,
+    );
+
+    const chunks = loadCorpus(dir);
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].content).toBe('First line.\n\nMiddle line.\n\nLast line.');
+  });
+
+  it('still drops a comment that sits above the first ## heading', async () => {
+    await writeCorpusFile(
+      dir,
+      'preamble-comment.md',
+      `${FRONTMATTER('preamble-comment')}
+<!-- private note above the first heading -->
+
+## Real Section
+
+Kept content.
+`,
+    );
+
+    const chunks = loadCorpus(dir);
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].content).toBe('Kept content.');
+  });
+
+  it('computes contentHash from the stripped body, not the raw body with the comment', async () => {
+    await writeCorpusFile(
+      dir,
+      'secret.md',
+      `${FRONTMATTER('secret', 'Secret Title')}
+## Only Section
+
+Prose before.
+
+<!-- do not say this publicly -->
+
+Prose after.
+`,
+    );
+
+    const [chunk] = loadCorpus(dir);
+
+    const rawBodyWithComment = 'Prose before.\n\n<!-- do not say this publicly -->\n\nProse after.';
+    const hashIfCommentKept = hashContent(embeddingText('Secret Title', 'Only Section', rawBodyWithComment));
+
+    expect(chunk.metadata.contentHash).not.toBe(hashIfCommentKept);
+    expect(chunk.metadata.contentHash).toBe(
+      hashContent(embeddingText(chunk.metadata.title, chunk.metadata.heading, chunk.content)),
+    );
+  });
 });
 
 describe('embeddingText', () => {
