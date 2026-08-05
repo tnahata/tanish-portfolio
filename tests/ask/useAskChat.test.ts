@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildTurns, MAX_STORED_TURNS, parseStoredTranscript, selectPersistableMessages, type AskUIMessage } from '@/components/ask/useAskChat';
+import { buildTurns, isResumableGate, MAX_STORED_TURNS, parseStoredTranscript, selectPersistableMessages, type AskUIMessage } from '@/components/ask/useAskChat';
 
 function userMessage(id: string, text: string): AskUIMessage {
   return { id, role: 'user', parts: [{ type: 'text', text }] };
@@ -115,6 +115,16 @@ describe('selectPersistableMessages: what survives a reload', () => {
     expect(persisted).toHaveLength(MAX_STORED_TURNS * 2);
     expect(persisted[0]).toEqual(userMessage('u5', 'question 5'));
     expect(persisted[persisted.length - 1]).toEqual(assistantAnswer(`a${turnCount - 1}`, `answer ${turnCount - 1}`));
+  });
+});
+
+describe('isResumableGate: which gates arm the resume-after-sign-in replay', () => {
+  it('arms resume for a sign-in gate, which signing in lifts', () => {
+    expect(isResumableGate('sign_in_required')).toBe(true);
+  });
+
+  it('never arms resume for a rate limit, so reopening the panel cannot replay and re-gate the question', () => {
+    expect(isResumableGate('rate_limited')).toBe(false);
   });
 });
 

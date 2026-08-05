@@ -24,6 +24,12 @@ type AskDataParts = {
 export type AskUIMessage = UIMessage<unknown, AskDataParts>;
 type AskMessagePart = AskUIMessage['parts'][number];
 
+/** Only a sign-in gate is resumable (signing in lifts it). Arming resume for a rate limit makes
+ *  the panel's mount-time replay re-send and re-gate the question on every reopen, growing the chat. */
+export function isResumableGate(reason: AskDataParts['gate']['reason']): boolean {
+  return reason === 'sign_in_required';
+}
+
 function isTextPart(part: AskMessagePart): part is Extract<AskMessagePart, { type: 'text' }> {
   return part.type === 'text';
 }
@@ -179,7 +185,7 @@ export function useAskChat() {
     messages: restored.messages,
     onData: (part) => {
       if (part.type === 'data-status') setStage(part.data.stage);
-      if (part.type === 'data-gate') setPendingQuestion(lastQuestionRef.current);
+      if (part.type === 'data-gate' && isResumableGate(part.data.reason)) setPendingQuestion(lastQuestionRef.current);
     },
     onFinish: () => setStage(null),
     onError: () => {
