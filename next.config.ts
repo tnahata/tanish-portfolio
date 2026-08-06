@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/projects/ai-agent',
-        destination: '/projects/discovery-agent',
+        destination: '/projects/noiseless',
         permanent: true,
       },
       {
